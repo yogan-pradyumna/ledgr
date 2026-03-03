@@ -18,6 +18,53 @@ A personal expense tracking app that connects to your bank accounts, parses PDF/
 
 ---
 
+## Architecture
+
+```mermaid
+flowchart TB
+    subgraph browser["Browser"]
+        react["React Frontend"]
+    end
+
+    subgraph machine["Your Machine"]
+        server["Express Server\n(port 3001)"]
+        env[".env.local\n(all credentials)"]
+    end
+
+    subgraph google["Google Cloud"]
+        oauth["OAuth 2.0"]
+        sheets["Sheets API"]
+    end
+
+    subgraph llm["LLM Provider (your choice)"]
+        claude["Anthropic Claude"]
+        openai["OpenAI / Groq / etc."]
+        ollama["Ollama (local)"]
+    end
+
+    subgraph plaid["Plaid"]
+        plaidapi["Plaid API"]
+    end
+
+    react -- "sign-in & token refresh" --> oauth
+    react -- "read & write\n(expenses, budgets, rules)" --> sheets
+    react -- "parse request\n{ prompt }" --> server
+    server -- "parsed transactions" --> react
+    server -- "LLM API call" --> claude
+    server -- "LLM API call" --> openai
+    server -- "LLM API call" --> ollama
+    env -. "API keys loaded\nat startup" .-> server
+    react -- "Plaid Link / token exchange" --> server
+    server -- "fetch transactions" --> plaidapi
+```
+
+**Key points:**
+- The browser talks to Google directly (OAuth sign-in and Sheets read/write) — no middleman for your expense data
+- All LLM calls and Plaid calls are proxied through the local Express server, so API keys never touch the browser
+- `.env.local` is the single place for all credentials; it is gitignored
+
+---
+
 ## Tech stack
 
 | Layer | Technology |
