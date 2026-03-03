@@ -25,9 +25,9 @@ A personal expense tracking app that connects to your bank accounts, parses PDF/
 | Frontend | React 19 + TypeScript + Vite |
 | Styling | Tailwind CSS v4 |
 | Storage | Google Sheets API (OAuth 2.0) |
-| AI parsing | Anthropic Claude (`claude-haiku-4-5`) — called directly from the browser |
+| AI parsing | Any LLM via the Express server — Anthropic Claude by default; configurable to OpenAI, Groq, Ollama, or any OpenAI-compatible provider |
 | Bank sync | Plaid Link + Plaid Transactions API |
-| Plaid server | Node.js + Express (port 3001) |
+| Server | Node.js + Express (port 3001) — handles LLM calls and Plaid |
 
 ---
 
@@ -35,7 +35,7 @@ A personal expense tracking app that connects to your bank accounts, parses PDF/
 
 - **Node.js** 18+ and npm
 - A **Google account** (for Sheets storage and OAuth sign-in)
-- An **Anthropic API key** (for PDF/paste parsing) — [console.anthropic.com](https://console.anthropic.com)
+- An **LLM API key** for parsing — Anthropic Claude is the default ([console.anthropic.com](https://console.anthropic.com)), but any OpenAI-compatible provider works (see [Choosing an LLM](#choosing-an-llm))
 - A **Plaid account** *(optional — only needed for bank sync)* — [dashboard.plaid.com](https://dashboard.plaid.com)
 
 ---
@@ -73,43 +73,79 @@ Copy the example file and fill in your values:
 cp .env.local.example .env.local
 ```
 
-Edit `.env.local`:
+Edit `.env.local` with your credentials:
 
 ```env
+# Google (required)
 VITE_GOOGLE_CLIENT_ID=your-google-oauth-client-id.apps.googleusercontent.com
 VITE_SPREADSHEET_ID=your-google-spreadsheet-id
-VITE_ANTHROPIC_API_KEY=sk-ant-api03-...
 
-# Only needed if using bank sync via Plaid:
+# LLM for parsing (choose one — see "Choosing an LLM" below)
+ANTHROPIC_API_KEY=sk-ant-api03-...
+
+# Plaid (optional — only for bank sync)
 PLAID_CLIENT_ID=your-plaid-client-id
 PLAID_SECRET=your-plaid-secret-key
 PLAID_ENV=sandbox
 ```
 
-> **Note:** `VITE_` prefixed variables are bundled into the browser. The Anthropic API key is sent from the browser to the Anthropic API directly. This is fine for personal/local use but be aware of this if you plan to share or host the app publicly.
+> **Note:** All API keys are server-side only — they live in `.env.local` (which is gitignored) and are read by the Express server. They are never bundled into the browser.
 
 ### 4. Run the app
 
-**Frontend only** (no bank sync):
 ```bash
 npm run dev
 ```
-Open [http://localhost:5173](http://localhost:5173)
 
-**With bank sync** (Plaid requires the Express server):
-```bash
-# Terminal 1 — Plaid server
-npm run server
-
-# Terminal 2 — Frontend
-npm run dev
-```
+This starts both the Vite frontend and the Express server together. Open [http://localhost:5173](http://localhost:5173).
 
 ### 5. First sign-in
 
 1. Click **Sign in with Google**
 2. The app automatically creates three sheets in your spreadsheet: `Expenses`, `MerchantRules`, `Budgets`
 3. Start importing or adding expenses
+
+---
+
+## Choosing an LLM
+
+LLM calls are routed through the local Express server, so any provider works regardless of browser CORS restrictions. Configure in `.env.local`:
+
+**Anthropic Claude (default)**
+```env
+ANTHROPIC_API_KEY=sk-ant-api03-...
+# Optionally pin a specific model (defaults to claude-haiku-4-5-20251001):
+# LLM_MODEL=claude-opus-4-6
+```
+
+**OpenAI**
+```env
+LLM_BASE_URL=https://api.openai.com/v1
+LLM_API_KEY=sk-...
+LLM_MODEL=gpt-4o-mini
+```
+
+**Groq (free tier available)**
+```env
+LLM_BASE_URL=https://api.groq.com/openai/v1
+LLM_API_KEY=gsk_...
+LLM_MODEL=llama-3.1-8b-instant
+```
+
+**Ollama (local, no API key needed)**
+```env
+LLM_BASE_URL=http://localhost:11434/v1
+LLM_MODEL=llama3.2
+```
+
+**Any other OpenAI-compatible provider**
+```env
+LLM_BASE_URL=https://your-provider.com/v1
+LLM_API_KEY=your-key
+LLM_MODEL=your-model-name
+```
+
+When `LLM_BASE_URL` is set, it takes priority over `ANTHROPIC_API_KEY`.
 
 ---
 
@@ -139,7 +175,7 @@ Drag-and-drop or click to upload a bank statement PDF. Works with text-based PDF
 
 ### Bank Sync
 
-Connect real bank accounts using Plaid Link. Fetches the last 7–90 days of transactions. Requires the Express server running on port 3001.
+Connect real bank accounts using Plaid Link. Fetches the last 7–90 days of transactions.
 
 - Transactions are shown in a review table before import
 - Duplicate and payment rows are auto-deselected
@@ -166,7 +202,7 @@ Every time you correct a category on an import, the merchant name is saved to th
 
 ### Payment / Transfer Detection
 
-Credit card payments, autopay, balance transfers, and inter-account transfers are flagged as `isPayment` and shown:
+Credit card payments, autopay, balance transfers, and inter-account transfers are flagged and shown:
 - With a purple row background
 - Labeled "payment?" next to the description
 - Unchecked by default in the review table
@@ -191,19 +227,20 @@ You can add your own sheets, formulas, or charts alongside these — the app onl
 
 ## Privacy
 
-- No app server — your expenses go directly from your browser to Google Sheets via the Google API
-- The Plaid Express server (`server/index.ts`) runs locally and is only needed for bank sync
-- Plaid access tokens are stored in `server/plaid-accounts.json` on your local machine (this file is gitignored)
-- The Anthropic API receives the text of your bank statements for parsing; no data is stored by Anthropic beyond standard API logging
+- Your expenses go directly from your browser to Google Sheets via the Google API — no third-party app server ever sees them
+- The Express server (`server/index.ts`) runs locally on your machine and handles LLM parsing calls and Plaid bank sync
+- LLM API keys never leave your machine — they are read from `.env.local` by the local server only
+- Plaid access tokens are stored in `server/plaid-accounts.json` on your local machine (gitignored)
+- The LLM provider you choose receives the text of your bank statements for parsing; no data is stored beyond standard API logging
 
 ---
 
-## Contributing / running your own copy
+## Running your own copy
 
 This project is designed to be self-hosted per user. Each person needs their own:
 - Google Cloud project + OAuth credentials
 - Google Spreadsheet
-- Anthropic API key
+- LLM API key (Anthropic, OpenAI, Groq, or self-hosted via Ollama)
 - Plaid credentials (optional)
 
 There is no shared backend.
@@ -214,4 +251,4 @@ There is no shared backend.
 
 - `.env.local` is gitignored — never commit it
 - `server/plaid-accounts.json` is gitignored — it contains Plaid access tokens
-- If you fork this repo, double-check that no credentials have been accidentally committed with `git log -p`
+- If you fork this repo, verify no credentials were accidentally committed: `git log -p`

@@ -222,6 +222,102 @@ app.get('/api/plaid/transactions', async (req, res) => {
   }
 });
 
+// POST /api/llm/parse
+// Body: { prompt }
+// LLM provider is configured via env vars in .env.local:
+//   ANTHROPIC_API_KEY  — use Anthropic Claude (default)
+//   LLM_BASE_URL + LLM_API_KEY + LLM_MODEL — use any OpenAI-compatible provider
+app.post('/api/llm/parse', async (req, res) => {
+  try {
+    const { prompt } = req.body as { prompt: string };
+
+    if (!prompt) {
+      res.status(400).json({ error: 'prompt is required' });
+      return;
+    }
+
+    const LLM_BASE_URL = process.env['LLM_BASE_URL'];
+    const LLM_API_KEY  = process.env['LLM_API_KEY'] ?? '';
+    const LLM_MODEL    = process.env['LLM_MODEL'] ?? '';
+    const ANTHROPIC_KEY = process.env['ANTHROPIC_API_KEY'] ?? '';
+
+    let result: string;
+
+    if (LLM_BASE_URL && LLM_MODEL) {
+      // OpenAI-compatible path (OpenAI, Groq, Ollama, any custom provider)
+      const url = LLM_BASE_URL.replace(/\/$/, '') + '/chat/completions';
+      const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+      if (LLM_API_KEY) headers['Authorization'] = `Bearer ${LLM_API_KEY}`;
+
+      const upstream = await fetch(url, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({
+          model: LLM_MODEL,
+          max_tokens: 4096,
+          messages: [{ role: 'user', content: prompt }],
+        }),
+      });
+
+      if (!upstream.ok) {
+        const err = await upstream.json().catch(() => ({}));
+        const msg =
+          (err as { error?: { message?: string } })?.error?.message ??
+          `LLM API error ${upstream.status}`;
+        res.status(upstream.status).json({ error: msg });
+        return;
+      }
+
+      const data = (await upstream.json()) as {
+        choices: Array<{ message: { content: string } }>;
+      };
+      result = data.choices[0]?.message?.content ?? '[]';
+
+    } else if (ANTHROPIC_KEY) {
+      // Anthropic native API path
+      const model = LLM_MODEL || 'claude-haiku-4-5-20251001';
+      const upstream = await fetch('https://api.anthropic.com/v1/messages', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-api-key': ANTHROPIC_KEY,
+          'anthropic-version': '2023-06-01',
+        },
+        body: JSON.stringify({
+          model,
+          max_tokens: 4096,
+          messages: [{ role: 'user', content: prompt }],
+        }),
+      });
+
+      if (!upstream.ok) {
+        const err = await upstream.json().catch(() => ({}));
+        const msg =
+          (err as { error?: { message?: string } })?.error?.message ??
+          `Anthropic API error ${upstream.status}`;
+        res.status(upstream.status).json({ error: msg });
+        return;
+      }
+
+      const data = (await upstream.json()) as {
+        content: Array<{ type: string; text: string }>;
+      };
+      result = data.content.find((b) => b.type === 'text')?.text ?? '[]';
+
+    } else {
+      res.status(500).json({
+        error:
+          'No LLM configured. Set ANTHROPIC_API_KEY (for Claude) or LLM_BASE_URL + LLM_API_KEY + LLM_MODEL (for any OpenAI-compatible provider) in .env.local.',
+      });
+      return;
+    }
+
+    res.json({ result });
+  } catch (err) {
+    res.status(500).json({ error: err instanceof Error ? err.message : 'LLM request failed' });
+  }
+});
+
 // DELETE /api/plaid/account/:itemId
 app.delete('/api/plaid/account/:itemId', async (req, res) => {
   try {

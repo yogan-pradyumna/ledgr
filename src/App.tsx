@@ -115,7 +115,7 @@ export default function App() {
           <span className="text-xl font-bold text-gray-900">Ledgr</span>
           {isSignedIn && (
             <span className="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full font-medium">
-              Connected to Sheets
+              Connected to your Google Sheet
             </span>
           )}
         </div>

@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import type { Expense, ParsedTransaction } from '../types';
 import { CATEGORIES } from '../types';
-import { parseWithClaude } from '../services/pdfParser';
+import { parseWithLLM } from '../services/pdfParser';
 import { findDuplicateIndices } from '../utils/duplicates';
 import { applyMerchantRules } from '../utils/merchantMemory';
 
@@ -33,7 +33,7 @@ export default function PasteImportTab({ expenses, onImport, merchantRules, onMe
     setSuccess('');
     setParsing(true);
     try {
-      const parsed = await parseWithClaude(text);
+      const parsed = await parseWithLLM(text);
       if (parsed.length === 0) {
         setError('No transactions found. Make sure the text contains transaction data with dates and amounts.');
         return;
@@ -132,7 +132,7 @@ export default function PasteImportTab({ expenses, onImport, merchantRules, onMe
             disabled={parsing || !text.trim()}
             className="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-lg text-sm transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            {parsing ? 'Parsing with Claude…' : 'Parse Transactions'}
+            {parsing ? 'Parsing…' : 'Parse Transactions'}
           </button>
         </>
       ) : (
