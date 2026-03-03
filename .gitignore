@@ -29,3 +29,5 @@ dist-ssr
 # Plaid access tokens (sensitive - never commit)
 server/plaid-accounts.json
 .env.local
+.claude/
+.claude/
