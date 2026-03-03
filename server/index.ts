@@ -97,7 +97,7 @@ app.post('/api/plaid/link-token', async (_req, res) => {
   try {
     const response = await plaid.linkTokenCreate({
       user: { client_user_id: 'local-user' },
-      client_name: 'Expense Tracker',
+      client_name: 'Ledgr',
       products: [Products.Transactions],
       country_codes: [CountryCode.Us],
       language: 'en',

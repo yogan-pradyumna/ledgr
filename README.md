@@ -1,4 +1,4 @@
-# Expense Tracker
+# Ledgr
 
 A personal expense tracking app that connects to your bank accounts, parses PDF/text statements, and stores everything in your own Google Sheet. No third-party servers, no subscription — your data stays in your Google account.
 
@@ -45,8 +45,8 @@ A personal expense tracking app that connects to your bank accounts, parses PDF/
 ### 1. Clone and install
 
 ```bash
-git clone https://github.com/your-username/expense-tracker.git
-cd expense-tracker
+git clone https://github.com/your-username/ledgr.git
+cd ledgr
 npm install
 ```
 

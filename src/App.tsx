@@ -112,7 +112,7 @@ export default function App() {
       {/* Header */}
       <header className="bg-white border-b border-gray-200 px-4 py-3 flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <span className="text-xl font-bold text-gray-900">Expenses Manager</span>
+          <span className="text-xl font-bold text-gray-900">Ledgr</span>
           {isSignedIn && (
             <span className="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full font-medium">
               Connected to Sheets
