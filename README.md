@@ -4,17 +4,25 @@ A personal expense tracking app that connects to your bank accounts, parses PDF/
 
 ## What it does
 
-- **Bank Sync** — Connect real bank accounts via Plaid and import transactions directly
-- **PDF Import** — Upload a bank statement PDF; an LLM extracts the transactions automatically
-- **Paste Import** — Copy-paste transaction rows from your bank's website; the LLM parses them
-- **Manual Entry** — Add individual expenses by hand
-- **Merchant Memory** — Remembers category corrections you make and applies them automatically on future imports
-- **Duplicate Detection** — Flags transactions that look like they already exist in your sheet
-- **Payment Detection** — Identifies credit card payments and transfers so they aren't counted as real expenses; shows them highlighted and unchecked so you can decide
-- **Edit & Delete** — Fix or remove any expense directly from the dashboard
-- **Budgets** — Set monthly spending targets per category with visual progress bars
-- **Trends** — 12-month heatmap table showing spending by category over time
-- **Google Sheets backend** — All data is stored in a spreadsheet in your own Google account; export to CSV anytime from Sheets
+### 1. Expense Addition
+- **Manual Entry** — Add individual expenses by hand for quick, on-the-go tracking.
+- **Bank Sync** — Connect real bank accounts via Plaid to import transactions directly.
+- **PDF Import** — Upload bank statement PDFs or any other PDFs with transactions; an LLM automatically extracts and formats the data.
+- **Paste Import** — Copy-paste transaction rows from your bank's website for instant LLM parsing.
+- **Duplicate Detection** — Intelligently flags transactions that already exist in your records to prevent double-counting.
+
+### 2. Expense Tracking
+- **Budgets** — Set monthly spending targets per category with real-time visual progress bars.
+- **Trends** — View a 12-month heatmap table showing spending patterns by category over time.
+- **Payment Detection** — Identifies credit card payments and transfers so they aren't counted as new expenses.
+- **Merchant Memory** — Automatically learns and applies your category corrections to future imports.
+- **Edit & Delete** — Maintain full control to fix or remove any expense directly from your dashboard.
+
+### 3. How it Works
+- **Google Sheets Backend** — All data is stored in a spreadsheet within your own Google account for easy export.
+- **Private & Local** — No third-party servers or subscriptions; your financial data stays under your control.
+- **Bring Your Own AI** — Connect to your preferred LLM (Claude, OpenAI, or local via Ollama) for data parsing.
+- **Data Sovereignty** — Customize exactly how and to which systems you share your financial insights.
 
 ---
 
