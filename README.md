@@ -35,8 +35,8 @@ flowchart TB
     end
 
     subgraph machine["Your Machine"]
-        server["Express Server\n(port 3001)"]
-        env[".env.local\n(all credentials)"]
+        server["Express Server (port 3001)"]
+        env[".env.local (all credentials)"]
     end
 
     subgraph google["Google Cloud"]
@@ -55,8 +55,8 @@ flowchart TB
     end
 
     react -- "sign-in & token refresh" --> oauth
-    react -- "read & write\n(expenses, budgets, rules)" --> sheets
-    react -- "parse request\n{ prompt }" --> server
+    react -- "read & write (expenses, budgets, rules)" --> sheets
+    react -- "parse request" --> server
     server -- "parsed transactions" --> react
     server -- "LLM API call" --> claude
     server -- "LLM API call" --> openai
@@ -310,7 +310,7 @@ You can add your own sheets, formulas, or charts alongside these — the app onl
 - The Express server (`server/index.ts`) runs locally on your machine and handles LLM parsing calls and Plaid bank sync
 - LLM API keys never leave your machine — they are read from `.env.local` by the local server only
 - Plaid access tokens are stored in `server/plaid-accounts.json` on your local machine (gitignored)
-- The LLM provider you choose receives the text of your bank statements for parsing; no data is stored beyond standard API logging
+- **LLM providers do receive your bank statement text** (merchant names, dates, amounts) for every parse request — do your own due diligence on your chosen provider's data retention and privacy policy before use. Ollama is the only option where nothing leaves your machine.
 
 ---
 
