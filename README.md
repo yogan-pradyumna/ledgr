@@ -112,33 +112,89 @@ npm install
    https://docs.google.com/spreadsheets/d/THIS_IS_THE_ID/edit
    ```
 
-### 3. Environment variables
+### 3. LLM for parsing (required)
 
-Copy the example file and fill in your values:
+PDF and paste imports use an LLM to extract transactions. All LLM calls go through the local Express server — pick whichever provider you prefer and add the corresponding lines to `.env.local`:
 
-```bash
-cp .env.local.example .env.local
+**Option A — Anthropic Claude** *(recommended — most accurate)*
+```env
+ANTHROPIC_API_KEY=sk-ant-api03-...
+# Model defaults to claude-haiku-4-5-20251001. To use a different model:
+# LLM_MODEL=claude-opus-4-6
+```
+Get a key at [console.anthropic.com](https://console.anthropic.com).
+
+**Option B — Groq** *(free tier, fast)*
+```env
+LLM_BASE_URL=https://api.groq.com/openai/v1
+LLM_API_KEY=gsk_...
+LLM_MODEL=llama-3.1-8b-instant
+```
+Get a free key at [console.groq.com](https://console.groq.com).
+
+**Option C — OpenAI**
+```env
+LLM_BASE_URL=https://api.openai.com/v1
+LLM_API_KEY=sk-...
+LLM_MODEL=gpt-4o-mini
 ```
 
-Edit `.env.local` with your credentials:
+**Option D — Ollama (local, free, no API key)**
+```env
+LLM_BASE_URL=http://localhost:11434/v1
+LLM_MODEL=llama3.2
+```
+Install Ollama from [ollama.com](https://ollama.com) and run `ollama pull llama3.2` first.
+
+**Option E — Any other OpenAI-compatible provider**
+```env
+LLM_BASE_URL=https://your-provider.com/v1
+LLM_API_KEY=your-key
+LLM_MODEL=your-model-name
+```
+
+> When `LLM_BASE_URL` is set it takes priority over `ANTHROPIC_API_KEY`.
+
+### 4. Plaid — bank sync *(optional)*
+
+Skip this step if you only want to import PDFs or paste transactions manually.
+
+1. Sign up at [dashboard.plaid.com](https://dashboard.plaid.com) and create a new app
+2. Go to **Team Settings → Keys** to find your **Client ID** and **Secret**
+3. Set `PLAID_ENV` based on what you need:
+   - `sandbox` — free, uses Plaid's fake test bank (credentials: `user_good` / `pass_good`); no real account access
+   - `development` — connects real bank accounts; limited to 100 Items for free
+   - `production` — full access; requires Plaid approval
+4. For `development` or `production`, go to **API → Allowed redirect URIs** in the Plaid dashboard and add `http://localhost:5173` so OAuth-based banks (e.g. Chase) can complete their flow
+
+Add to `.env.local`:
+```env
+PLAID_CLIENT_ID=your-plaid-client-id
+PLAID_SECRET=your-plaid-secret-key
+PLAID_ENV=sandbox
+```
+
+### 5. Environment variables — final `.env.local`
+
+After completing the steps above, your `.env.local` should look like this (only include what you've set up):
 
 ```env
 # Google (required)
 VITE_GOOGLE_CLIENT_ID=your-google-oauth-client-id.apps.googleusercontent.com
 VITE_SPREADSHEET_ID=your-google-spreadsheet-id
 
-# LLM for parsing (choose one — see "Choosing an LLM" below)
+# LLM — one of the options from step 3 (required)
 ANTHROPIC_API_KEY=sk-ant-api03-...
 
-# Plaid (optional — only for bank sync)
+# Plaid — from step 4 (optional)
 PLAID_CLIENT_ID=your-plaid-client-id
 PLAID_SECRET=your-plaid-secret-key
 PLAID_ENV=sandbox
 ```
 
-> **Note:** All API keys are server-side only — they live in `.env.local` (which is gitignored) and are read by the Express server. They are never bundled into the browser.
+> All keys are read by the local Express server only — none are bundled into the browser.
 
-### 4. Run the app
+### 6. Run the app
 
 ```bash
 npm run dev
@@ -146,53 +202,11 @@ npm run dev
 
 This starts both the Vite frontend and the Express server together. Open [http://localhost:5173](http://localhost:5173).
 
-### 5. First sign-in
+### 7. First sign-in
 
 1. Click **Sign in with Google**
 2. The app automatically creates three sheets in your spreadsheet: `Expenses`, `MerchantRules`, `Budgets`
 3. Start importing or adding expenses
-
----
-
-## Choosing an LLM
-
-LLM calls are routed through the local Express server, so any provider works regardless of browser CORS restrictions. Configure in `.env.local`:
-
-**Anthropic Claude (default)**
-```env
-ANTHROPIC_API_KEY=sk-ant-api03-...
-# Optionally pin a specific model (defaults to claude-haiku-4-5-20251001):
-# LLM_MODEL=claude-opus-4-6
-```
-
-**OpenAI**
-```env
-LLM_BASE_URL=https://api.openai.com/v1
-LLM_API_KEY=sk-...
-LLM_MODEL=gpt-4o-mini
-```
-
-**Groq (free tier available)**
-```env
-LLM_BASE_URL=https://api.groq.com/openai/v1
-LLM_API_KEY=gsk_...
-LLM_MODEL=llama-3.1-8b-instant
-```
-
-**Ollama (local, no API key needed)**
-```env
-LLM_BASE_URL=http://localhost:11434/v1
-LLM_MODEL=llama3.2
-```
-
-**Any other OpenAI-compatible provider**
-```env
-LLM_BASE_URL=https://your-provider.com/v1
-LLM_API_KEY=your-key
-LLM_MODEL=your-model-name
-```
-
-When `LLM_BASE_URL` is set, it takes priority over `ANTHROPIC_API_KEY`.
 
 ---
 
