@@ -111,14 +111,24 @@ npm install
 2. Enable these two APIs:
    - **Google Sheets API**
    - **Google Identity Services** (enabled by default for OAuth)
-3. Go to **APIs & Services → Credentials → Create Credentials → OAuth 2.0 Client ID**
+3. Go to **APIs & Services → OAuth consent screen**
+   - Choose **External** user type and click Create
+   - Fill in the app name (e.g. "Ledgr") and your email for support and developer contact fields
+   - On the **Scopes** page, click "Add or remove scopes" and add:
+     - `https://www.googleapis.com/auth/spreadsheets`
+   - On the **Test users** page, click **Add users** and add your own Google email address
+   - Save and continue
+4. Go to **APIs & Services → Credentials → Create Credentials → OAuth 2.0 Client ID**
    - Application type: **Web application**
    - Authorized JavaScript origins: `http://localhost:5173`
-4. Copy the **Client ID** — you'll need it for `VITE_GOOGLE_CLIENT_ID`
-5. Create a new **Google Sheet** in your Google Drive and copy the ID from its URL:
+5. Copy the **Client ID** — you'll need it for `VITE_GOOGLE_CLIENT_ID` in `.env.local`
+6. Create a new **Google Sheet** in your Google Drive and copy the ID from its URL:
    ```
    https://docs.google.com/spreadsheets/d/THIS_IS_THE_ID/edit
    ```
+   You'll need this ID for `VITE_SPREADSHEET_ID` in `.env.local`
+
+> **Important:** While the app is in "Testing" mode (the default), only the Google accounts you added as test users can sign in. If you get an "Access blocked" error, double-check that your email is in the test users list.
 
 ### 3. LLM for parsing (required)
 
