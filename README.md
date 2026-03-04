@@ -1,6 +1,19 @@
 # Ledgr
 
-A personal expense tracking app that connects to your bank accounts, parses PDF/text statements, and stores everything in your own Google Sheet. No third-party servers, no subscription — your data stays in your Google account.
+## The Problem: Financial Fragmentation & Privacy Anxiety
+
+Managing personal finances today usually feels like a trade-off between **convenience** and **privacy**. 
+
+Most of us fall into one of two frustrated camps:
+
+1. **The Spreadsheet Purist:** You manually copy-paste data into Excel or Google Sheets. It’s private and customizable, but it’s a soul-crushing chore that leads to "tracking burnout" and outdated data.
+2. **The App Optimizer:** You use third-party "free" apps that sync with your bank. It’s convenient, but your most sensitive financial data is stored on their servers, sold to advertisers, or trapped behind a monthly subscription.
+
+### Enter Ledgr
+
+**Ledgr** was built to bridge this gap. It provides the "magic" of modern fintech—AI-powered parsing, automatic bank syncing, and beautiful visualizations—without ever taking ownership of your data. 
+
+**You control where your data goes.** Unlike closed-loop apps, Ledgr is built on a foundation of data sovereignty. Because it uses your own **Google Sheets** as a backend and your own **API keys** for AI, you have a fully customizable pipeline. You decide exactly which systems see your financial data and how that data is shared, ensuring you are the owner of your financial story, not the product.
 
 ## What it does
 
