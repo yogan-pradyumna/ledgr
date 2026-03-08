@@ -1,4 +1,5 @@
 import type { Expense } from '../types';
+import { encrypt, decrypt } from '../utils/crypto';
 
 const SHEET_NAME = 'Expenses';
 const MERCHANT_SHEET = 'MerchantRules';
@@ -108,17 +109,19 @@ export async function fetchExpenses(
   );
   const data = await res.json();
   const rows: string[][] = data.values ?? [];
-  return rows
-    .filter((r) => r[0])
-    .map((r) => ({
-      id: r[0] ?? '',
-      date: r[1] ?? '',
-      description: r[2] ?? '',
-      amount: parseFloat(r[3] ?? '0'),
-      category: r[4] ?? 'Other',
-      source: (r[5] as Expense['source']) ?? 'manual',
-      createdAt: r[6] ?? '',
-    }));
+  return Promise.all(
+    rows
+      .filter((r) => r[0])
+      .map(async (r) => ({
+        id: r[0] ?? '',
+        date: await decrypt(r[1] ?? ''),
+        description: await decrypt(r[2] ?? ''),
+        amount: parseFloat(await decrypt(r[3] ?? '0')),
+        category: await decrypt(r[4] ?? 'Other'),
+        source: (await decrypt(r[5] ?? 'manual')) as Expense['source'],
+        createdAt: await decrypt(r[6] ?? ''),
+      }))
+  );
 }
 
 /** Append one or more expenses as rows. */
@@ -127,15 +130,17 @@ export async function appendExpenses(
   spreadsheetId: string,
   expenses: Expense[]
 ): Promise<void> {
-  const values = expenses.map((e) => [
-    e.id,
-    e.date,
-    e.description,
-    e.amount,
-    e.category,
-    e.source,
-    e.createdAt,
-  ]);
+  const values = await Promise.all(
+    expenses.map(async (e) => [
+      e.id, // ID stays unencrypted — needed for row lookups
+      await encrypt(e.date),
+      await encrypt(e.description),
+      await encrypt(String(e.amount)),
+      await encrypt(e.category),
+      await encrypt(e.source),
+      await encrypt(e.createdAt),
+    ])
+  );
 
   await sheetsRequest(
     token,
@@ -168,12 +173,12 @@ export async function updateExpense(
       body: JSON.stringify({
         values: [[
           expense.id,
-          expense.date,
-          expense.description,
-          expense.amount,
-          expense.category,
-          expense.source,
-          expense.createdAt,
+          await encrypt(expense.date),
+          await encrypt(expense.description),
+          await encrypt(String(expense.amount)),
+          await encrypt(expense.category),
+          await encrypt(expense.source),
+          await encrypt(expense.createdAt),
         ]],
       }),
     }
@@ -197,7 +202,7 @@ export async function deleteExpense(
   if (!sheetMeta) throw new Error('Expenses sheet not found');
   const sheetId = sheetMeta.properties.sheetId;
 
-  // Find the row
+  // Find the row — ID column is unencrypted, no decryption needed
   const idsRes = await sheetsRequest(token, `/${spreadsheetId}/values/${SHEET_NAME}!A2:A`);
   const idsData = await idsRes.json();
   const ids: string[][] = idsData.values ?? [];
@@ -231,9 +236,15 @@ export async function fetchMerchantRules(
   const data = await res.json();
   const rows: string[][] = data.values ?? [];
   const rules: Record<string, string> = {};
-  rows.forEach((r) => {
-    if (r[0] && r[1]) rules[r[0]] = r[1];
-  });
+  await Promise.all(
+    rows.map(async (r) => {
+      if (r[0] && r[1]) {
+        const merchant = await decrypt(r[0]);
+        const category = await decrypt(r[1]);
+        rules[merchant] = category;
+      }
+    })
+  );
   return rules;
 }
 
@@ -244,11 +255,15 @@ export async function saveMerchantRule(
   merchant: string,
   category: string
 ): Promise<void> {
-  // Fetch existing rules to find if this merchant already has a row
-  const res = await sheetsRequest(token, `/${spreadsheetId}/values/${MERCHANT_SHEET}!A2:A`);
+  // Fetch all rows and decrypt merchant names to find if this merchant already has a row
+  const res = await sheetsRequest(token, `/${spreadsheetId}/values/${MERCHANT_SHEET}!A2:B`);
   const data = await res.json();
-  const merchants: string[][] = data.values ?? [];
-  const rowIndex = merchants.findIndex((r) => r[0] === merchant);
+  const rows: string[][] = data.values ?? [];
+  const decryptedMerchants = await Promise.all(rows.map((r) => decrypt(r[0] ?? '')));
+  const rowIndex = decryptedMerchants.findIndex((m) => m === merchant);
+
+  const encMerchant = await encrypt(merchant);
+  const encCategory = await encrypt(category);
 
   if (rowIndex !== -1) {
     // Update existing row
@@ -256,14 +271,14 @@ export async function saveMerchantRule(
     await sheetsRequest(
       token,
       `/${spreadsheetId}/values/${MERCHANT_SHEET}!A${sheetRow}:B${sheetRow}?valueInputOption=RAW`,
-      { method: 'PUT', body: JSON.stringify({ values: [[merchant, category]] }) }
+      { method: 'PUT', body: JSON.stringify({ values: [[encMerchant, encCategory]] }) }
     );
   } else {
     // Append new row
     await sheetsRequest(
       token,
       `/${spreadsheetId}/values/${MERCHANT_SHEET}!A:B:append?valueInputOption=RAW&insertDataOption=INSERT_ROWS`,
-      { method: 'POST', body: JSON.stringify({ values: [[merchant, category]] }) }
+      { method: 'POST', body: JSON.stringify({ values: [[encMerchant, encCategory]] }) }
     );
   }
 }
@@ -277,9 +292,15 @@ export async function fetchBudgets(
   const data = await res.json();
   const rows: string[][] = data.values ?? [];
   const budgets: Record<string, number> = {};
-  rows.forEach((r) => {
-    if (r[0] && r[1]) budgets[r[0]] = parseFloat(r[1]);
-  });
+  await Promise.all(
+    rows.map(async (r) => {
+      if (r[0] && r[1]) {
+        const category = await decrypt(r[0]);
+        const amount = await decrypt(r[1]);
+        budgets[category] = parseFloat(amount);
+      }
+    })
+  );
   return budgets;
 }
 
@@ -299,9 +320,16 @@ export async function saveBudgets(
   const nonZero = Object.entries(budgets).filter(([, v]) => v > 0);
   if (nonZero.length === 0) return;
 
+  const values = await Promise.all(
+    nonZero.map(async ([category, amount]) => [
+      await encrypt(category),
+      await encrypt(String(amount)),
+    ])
+  );
+
   await sheetsRequest(
     token,
     `/${spreadsheetId}/values/${BUDGET_SHEET}!A:B:append?valueInputOption=RAW&insertDataOption=INSERT_ROWS`,
-    { method: 'POST', body: JSON.stringify({ values: nonZero }) }
+    { method: 'POST', body: JSON.stringify({ values }) }
   );
 }

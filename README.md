@@ -192,7 +192,23 @@ PLAID_SECRET=your-plaid-secret-key
 PLAID_ENV=sandbox
 ```
 
-### 5. Environment variables — final `.env.local`
+### 5. Encryption *(optional but recommended)*
+
+Encrypts everything stored in your Google Sheet using AES-256-GCM. Without this, your spreadsheet data is readable by anyone who has access to your Google account or the sheet URL.
+
+Generate a key once:
+```bash
+node -e "console.log(require('crypto').randomBytes(32).toString('base64'))"
+```
+
+Add the output to `.env.local`:
+```env
+VITE_ENCRYPTION_KEY=<paste output here>
+```
+
+> **Keep this key safe.** If you lose it, your existing data becomes unreadable. Back it up somewhere secure (password manager, etc.). If you ever need to reset it, clear your three sheets and start fresh.
+
+### 6. Environment variables — final `.env.local`
 
 After completing the steps above, your `.env.local` should look like this (only include what you've set up):
 
@@ -204,15 +220,18 @@ VITE_SPREADSHEET_ID=your-google-spreadsheet-id
 # LLM — one of the options from step 3 (required)
 ANTHROPIC_API_KEY=sk-ant-api03-...
 
+# Encryption — from step 5 (optional but recommended)
+VITE_ENCRYPTION_KEY=your-base64-key
+
 # Plaid — from step 4 (optional)
 PLAID_CLIENT_ID=your-plaid-client-id
 PLAID_SECRET=your-plaid-secret-key
 PLAID_ENV=sandbox
 ```
 
-> All keys are read by the local Express server only — none are bundled into the browser.
+> `VITE_ENCRYPTION_KEY` is the only `VITE_` variable accessible in the browser — this is intentional, as encryption and decryption happen client-side before data is sent to Google Sheets. All other API keys are server-side only.
 
-### 6. Run the app
+### 7. Run the app
 
 ```bash
 npm run dev
@@ -220,7 +239,7 @@ npm run dev
 
 This starts both the Vite frontend and the Express server together. Open [http://localhost:5173](http://localhost:5173).
 
-### 7. First sign-in
+### 8. First sign-in
 
 1. Click **Sign in with Google**
 2. The app automatically creates three sheets in your spreadsheet: `Expenses`, `MerchantRules`, `Budgets`
