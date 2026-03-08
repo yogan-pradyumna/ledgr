@@ -81,6 +81,7 @@ flowchart TB
 
 **Key points:**
 - The browser talks to Google directly (OAuth sign-in and Sheets read/write) — no middleman for your expense data
+- When `VITE_ENCRYPTION_KEY` is set, data is encrypted in the browser before writing to Sheets and decrypted after reading — Google only ever stores ciphertext
 - All LLM calls and Plaid calls are proxied through the local Express server, so API keys never touch the browser
 - `.env.local` is the single place for all credentials; it is gitignored
 
@@ -93,6 +94,7 @@ flowchart TB
 | Frontend | React 19 + TypeScript + Vite |
 | Styling | Tailwind CSS v4 |
 | Storage | Google Sheets API (OAuth 2.0) |
+| Encryption | AES-256-GCM via browser Web Crypto API — key stored in `.env.local`, never sent anywhere |
 | AI parsing | Any LLM via the Express server — Anthropic Claude by default; configurable to OpenAI, Groq, Ollama, or any OpenAI-compatible provider |
 | Bank sync | Plaid Link + Plaid Transactions API |
 | Server | Node.js + Express (port 3001) — handles LLM calls and Plaid |
@@ -334,11 +336,14 @@ The app manages three sheets automatically:
 
 You can add your own sheets, formulas, or charts alongside these — the app only reads/writes to these three tabs.
 
+> When `VITE_ENCRYPTION_KEY` is set, all cell values (except the `ID` column in Expenses) are stored as AES-256-GCM encrypted ciphertext. The sheet will not be human-readable directly — data is only accessible through the app.
+
 ---
 
 ## Privacy
 
 - Your expenses go directly from your browser to Google Sheets via the Google API — no third-party app server ever sees them
+- **When encryption is enabled**, Google Sheets stores only AES-256-GCM ciphertext — Google can see that data exists and when it changes, but not what it says. The encryption key never leaves your machine.
 - The Express server (`server/index.ts`) runs locally on your machine and handles LLM parsing calls and Plaid bank sync
 - LLM API keys never leave your machine — they are read from `.env.local` by the local server only
 - Plaid access tokens are stored in `server/plaid-accounts.json` on your local machine (gitignored)
@@ -362,4 +367,5 @@ There is no shared backend.
 
 - `.env.local` is gitignored — never commit it
 - `server/plaid-accounts.json` is gitignored — it contains Plaid access tokens
+- `VITE_ENCRYPTION_KEY` is your data's master key — back it up in a password manager. Losing it makes all existing sheet data permanently unrecoverable.
 - If you fork this repo, verify no credentials were accidentally committed: `git log -p`
