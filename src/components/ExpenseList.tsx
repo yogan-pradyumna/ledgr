@@ -42,7 +42,7 @@ export default function ExpenseList({ expenses, loading, onUpdate, onDelete, onM
       .filter((e) => filterCategory === ALL || e.category === filterCategory)
       .filter((e) => filterSource === ALL || e.source === filterSource)
       .filter((e) => filterYear === ALL || e.date.startsWith(filterYear))
-      .filter((e) => filterMonth === ALL || e.date.split('-')[1] === filterMonth)
+      .filter((e) => filterMonth === ALL || (e.date.split('-')[1] ?? '').padStart(2, '0') === filterMonth)
       .filter((e) => !filterFrom || e.date >= filterFrom)
       .filter((e) => !filterTo || e.date <= filterTo)
       .filter((e) => !search || e.description.toLowerCase().includes(search))
@@ -509,8 +509,13 @@ export default function ExpenseList({ expenses, loading, onUpdate, onDelete, onM
 }
 
 function formatDate(iso: string): string {
-  const [y, m, d] = iso.split('-');
-  return `${MONTHS[parseInt(m) - 1]} ${parseInt(d)}, ${y}`;
+  const parts = iso.split('-');
+  if (parts.length < 3) return iso;
+  const [y, m, d] = parts;
+  const monthIndex = parseInt(m) - 1;
+  const day = parseInt(d);
+  if (isNaN(monthIndex) || isNaN(day) || monthIndex < 0 || monthIndex > 11) return iso;
+  return `${MONTHS[monthIndex]} ${day}, ${y}`;
 }
 
 function categoryColor(cat: string): string {

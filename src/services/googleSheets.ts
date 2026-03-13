@@ -241,7 +241,11 @@ export async function fetchMerchantRules(
       if (r[0] && r[1]) {
         const merchant = await decrypt(r[0]);
         const category = await decrypt(r[1]);
-        rules[merchant] = category;
+        // Skip rows where decryption fell back to the raw encrypted value
+        // (contains no spaces, very long, no printable sentence chars).
+        if (merchant && category && merchant.length <= 100 && !/^[A-Za-z0-9+/]{40,}={0,2}$/.test(merchant)) {
+          rules[merchant] = category;
+        }
       }
     })
   );
@@ -297,7 +301,8 @@ export async function fetchBudgets(
       if (r[0] && r[1]) {
         const category = await decrypt(r[0]);
         const amount = await decrypt(r[1]);
-        budgets[category] = parseFloat(amount);
+        const parsed = parseFloat(amount);
+        if (!isNaN(parsed)) budgets[category] = parsed;
       }
     })
   );
@@ -310,6 +315,16 @@ export async function saveBudgets(
   spreadsheetId: string,
   budgets: Record<string, number>
 ): Promise<void> {
+  // Pre-encrypt everything before touching the sheet so a crypto failure
+  // doesn't leave it cleared but not rewritten.
+  const nonZero = Object.entries(budgets).filter(([, v]) => v > 0);
+  const values = await Promise.all(
+    nonZero.map(async ([category, amount]) => [
+      await encrypt(category),
+      await encrypt(String(amount)),
+    ])
+  );
+
   // Clear existing data rows
   await sheetsRequest(
     token,
@@ -317,15 +332,7 @@ export async function saveBudgets(
     { method: 'PUT', body: JSON.stringify({ values: [] }) }
   );
 
-  const nonZero = Object.entries(budgets).filter(([, v]) => v > 0);
-  if (nonZero.length === 0) return;
-
-  const values = await Promise.all(
-    nonZero.map(async ([category, amount]) => [
-      await encrypt(category),
-      await encrypt(String(amount)),
-    ])
-  );
+  if (values.length === 0) return;
 
   await sheetsRequest(
     token,
