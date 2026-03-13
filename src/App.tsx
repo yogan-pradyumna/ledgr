@@ -108,16 +108,12 @@ export default function App() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-100">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-gray-100">
       {/* Header */}
-      <header className="bg-white border-b border-gray-200 px-4 py-3 flex items-center justify-between">
-        <div className="flex items-center gap-3">
+      <header className="bg-white/80 backdrop-blur border-b border-gray-200 px-4 py-3 flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <img src="/logo.svg" alt="Ledgr" className="w-7 h-7" />
           <span className="text-xl font-bold text-gray-900">Ledgr</span>
-          {isSignedIn && (
-            <span className="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full font-medium">
-              Connected to your Google Sheet
-            </span>
-          )}
         </div>
         {isSignedIn && (
           <GoogleAuthButton
@@ -131,12 +127,14 @@ export default function App() {
 
       <main className="max-w-screen-xl mx-auto px-4 py-6">
         {!isSignedIn ? (
-          <div className="text-center py-20 space-y-4">
-            <h1 className="text-2xl font-bold text-gray-800">Track your expenses</h1>
-            <p className="text-gray-500 max-w-sm mx-auto text-sm">
-              Sign in with Google to get started. Your expenses are stored in a Google Sheet in your own account.
-            </p>
-            <div className="flex justify-center mt-6">
+          <div className="flex flex-col items-center justify-center min-h-[80vh]">
+            <div className="bg-white rounded-2xl shadow-lg border border-gray-100 px-12 py-14 flex flex-col items-center gap-6 max-w-sm w-full">
+              <img src="/logo.svg" alt="Ledgr" className="w-14 h-14" />
+              <div className="text-center space-y-1">
+                <h1 className="text-2xl font-bold text-gray-900 tracking-tight">Ledgr</h1>
+                <p className="text-sm text-gray-400">Your personal expense manager</p>
+              </div>
+              <div className="w-full border-t border-gray-100" />
               <GoogleAuthButton
                 clientId={CLIENT_ID}
                 onToken={handleToken}

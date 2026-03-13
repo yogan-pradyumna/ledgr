@@ -3,6 +3,7 @@ import type { Expense, ParsedTransaction } from '../types';
 import { CATEGORIES } from '../types';
 import { parsePDFStatement } from '../services/pdfParser';
 import { applyMerchantRules } from '../utils/merchantMemory';
+import { CURRENCY } from '../utils/currency';
 
 interface Props {
   onImport: (expenses: Expense[]) => Promise<void>;
@@ -191,7 +192,7 @@ export default function StatementUpload({ onImport, merchantRules, onMerchantLea
                       )}
                     </td>
                     <td className="px-3 py-2 text-right font-mono text-gray-900">
-                      ${t.amount.toFixed(2)}
+                      {CURRENCY}{t.amount.toFixed(2)}
                     </td>
                     <td className="px-3 py-2">
                       <select

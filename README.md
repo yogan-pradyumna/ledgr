@@ -242,9 +242,12 @@ VITE_ENCRYPTION_KEY=your-base64-key
 PLAID_CLIENT_ID=your-plaid-client-id
 PLAID_SECRET=your-plaid-secret-key
 PLAID_ENV=sandbox
+
+# Currency symbol — defaults to $ if not set (optional)
+VITE_CURRENCY_SYMBOL=$
 ```
 
-> `VITE_ENCRYPTION_KEY` is the only `VITE_` variable accessible in the browser — this is intentional, as encryption and decryption happen client-side before data is sent to Google Sheets. All other API keys are server-side only.
+> `VITE_ENCRYPTION_KEY` and `VITE_CURRENCY_SYMBOL` are the only `VITE_` variables accessible in the browser — this is intentional. All API keys are server-side only.
 
 ### 7. Run the app
 

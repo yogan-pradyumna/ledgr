@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import type { Expense } from '../types';
 import { CATEGORIES } from '../types';
+import { CURRENCY } from '../utils/currency';
 
 interface Props {
   expenses: Expense[];
@@ -105,7 +106,7 @@ export default function BudgetTab({ expenses, budgets, onSave }: Props) {
                   <div className="space-y-1">
                     <div className="flex items-center justify-between text-xs text-gray-600">
                       <span className={overBudget ? 'text-red-600 font-medium' : ''}>
-                        ${spent.toFixed(0)} / ${budget.toFixed(0)}
+                        {CURRENCY}{spent.toFixed(0)} / {CURRENCY}{budget.toFixed(0)}
                       </span>
                       <span className={`font-medium ${overBudget ? 'text-red-600' : nearBudget ? 'text-amber-600' : 'text-green-600'}`}>
                         {pct.toFixed(0)}%
@@ -120,14 +121,14 @@ export default function BudgetTab({ expenses, budgets, onSave }: Props) {
                   </div>
                 ) : (
                   <span className="text-xs text-gray-400">
-                    {spent > 0 ? `$${spent.toFixed(2)} spent · no budget set` : 'no budget set'}
+                    {spent > 0 ? `${CURRENCY}${spent.toFixed(2)} spent · no budget set` : 'no budget set'}
                   </span>
                 )}
               </div>
 
               {/* Budget input */}
               <div className="flex items-center gap-1 shrink-0">
-                <span className="text-sm text-gray-400">$</span>
+                <span className="text-sm text-gray-400">{CURRENCY}</span>
                 <input
                   type="number"
                   min="0"

@@ -1,5 +1,6 @@
 import { useMemo } from 'react';
 import type { Expense } from '../types';
+import { CURRENCY } from '../utils/currency';
 
 interface Props {
   expenses: Expense[];
@@ -120,7 +121,7 @@ export default function TrendsTab({ expenses }: Props) {
                             className="inline-block px-1.5 py-0.5 rounded font-medium text-emerald-900"
                             style={{ backgroundColor: `rgba(16, 185, 129, ${intensity})` }}
                           >
-                            ${val.toLocaleString('en-US', { maximumFractionDigits: 0 })}
+                            {CURRENCY}{val.toLocaleString(undefined, { maximumFractionDigits: 0 })}
                           </span>
                         ) : (
                           <span className="text-gray-300">—</span>
@@ -129,7 +130,7 @@ export default function TrendsTab({ expenses }: Props) {
                     );
                   })}
                   <td className="px-3 py-2 text-right font-semibold text-gray-800">
-                    ${rowTotal.toLocaleString('en-US', { maximumFractionDigits: 0 })}
+                    {CURRENCY}{rowTotal.toLocaleString(undefined, { maximumFractionDigits: 0 })}
                   </td>
                 </tr>
               );
@@ -147,7 +148,7 @@ export default function TrendsTab({ expenses }: Props) {
                         className="inline-block px-1.5 py-0.5 rounded font-semibold text-blue-900"
                         style={{ backgroundColor: `rgba(59, 130, 246, ${intensity})` }}
                       >
-                        ${total.toLocaleString('en-US', { maximumFractionDigits: 0 })}
+                        {CURRENCY}{total.toLocaleString(undefined, { maximumFractionDigits: 0 })}
                       </span>
                     ) : (
                       <span className="text-gray-300">—</span>
@@ -156,7 +157,7 @@ export default function TrendsTab({ expenses }: Props) {
                 );
               })}
               <td className="px-3 py-2.5 text-right font-bold text-gray-900">
-                ${grandTotal.toLocaleString('en-US', { maximumFractionDigits: 0 })}
+                {CURRENCY}{grandTotal.toLocaleString(undefined, { maximumFractionDigits: 0 })}
               </td>
             </tr>
           </tfoot>

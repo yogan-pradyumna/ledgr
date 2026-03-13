@@ -4,6 +4,7 @@ import { CATEGORIES } from '../types';
 import { parseWithLLM } from '../services/pdfParser';
 import { findDuplicateIndices } from '../utils/duplicates';
 import { applyMerchantRules } from '../utils/merchantMemory';
+import { CURRENCY } from '../utils/currency';
 
 interface Props {
   expenses: Expense[];
@@ -211,7 +212,7 @@ export default function PasteImportTab({ expenses, onImport, merchantRules, onMe
                       )}
                     </td>
                     <td className="px-3 py-2 text-right font-mono font-medium text-gray-900">
-                      ${t.amount.toFixed(2)}
+                      {CURRENCY}{t.amount.toFixed(2)}
                     </td>
                     <td className="px-3 py-2">
                       <select

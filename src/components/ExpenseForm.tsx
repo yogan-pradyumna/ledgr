@@ -2,6 +2,7 @@ import { useState } from 'react';
 import type { Expense } from '../types';
 import { CATEGORIES } from '../types';
 import { findDuplicate } from '../utils/duplicates';
+import { CURRENCY } from '../utils/currency';
 
 interface Props {
   expenses: Expense[];
@@ -106,7 +107,7 @@ export default function ExpenseForm({ expenses, onSubmit }: Props) {
           />
         </div>
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Amount ($)</label>
+          <label className="block text-sm font-medium text-gray-700 mb-1">Amount ({CURRENCY})</label>
           <input
             type="number"
             min="0.01"

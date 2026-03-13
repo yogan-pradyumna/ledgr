@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react';
 import type { Expense } from '../types';
 import { CATEGORIES } from '../types';
+import { CURRENCY } from '../utils/currency';
 
 interface Props {
   expenses: Expense[];
@@ -255,7 +256,7 @@ export default function ExpenseList({ expenses, loading, onUpdate, onDelete, onM
             {filtered.length} expense{filtered.length !== 1 ? 's' : ''}
           </span>
           <span className="text-base font-semibold text-blue-900">
-            Total: ${total.toFixed(2)}
+            Total: {CURRENCY}{total.toFixed(2)}
           </span>
         </div>
 
@@ -370,7 +371,7 @@ export default function ExpenseList({ expenses, loading, onUpdate, onDelete, onM
                         </span>
                       </td>
                       <td className="px-4 py-3 text-right font-mono font-medium text-gray-900">
-                        ${expense.amount.toFixed(2)}
+                        {CURRENCY}{expense.amount.toFixed(2)}
                       </td>
                       <td className="px-4 py-3 text-center">
                         <span className={`inline-block px-2 py-0.5 rounded-full text-xs font-medium ${
@@ -449,7 +450,7 @@ export default function ExpenseList({ expenses, loading, onUpdate, onDelete, onM
                     />
                   </div>
                   <span className="text-xs font-medium text-gray-700 w-12 text-right shrink-0">
-                    ${total.toLocaleString('en-US', { maximumFractionDigits: 0 })}
+                    {CURRENCY}{total.toLocaleString(undefined, { maximumFractionDigits: 0 })}
                   </span>
                 </div>
               ))}
@@ -471,7 +472,7 @@ export default function ExpenseList({ expenses, loading, onUpdate, onDelete, onM
                   />
                 </div>
                 <span className="text-xs font-medium text-gray-700 w-16 text-right shrink-0">
-                  {monthlyTotals[i] > 0 ? `$${monthlyTotals[i].toLocaleString('en-US', { maximumFractionDigits: 0 })}` : '—'}
+                  {monthlyTotals[i] > 0 ? `${CURRENCY}${monthlyTotals[i].toLocaleString(undefined, { maximumFractionDigits: 0 })}` : '—'}
                 </span>
               </div>
             ))}
@@ -495,7 +496,7 @@ export default function ExpenseList({ expenses, loading, onUpdate, onDelete, onM
                     />
                   </div>
                   <span className="text-xs font-medium text-gray-700 w-16 text-right shrink-0">
-                    ${total.toLocaleString('en-US', { maximumFractionDigits: 0 })}
+                    {CURRENCY}{total.toLocaleString(undefined, { maximumFractionDigits: 0 })}
                   </span>
                 </div>
               ))}
