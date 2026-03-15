@@ -33,7 +33,7 @@ Most of us fall into one of two frustrated camps:
 
 **You control where your data goes.** Unlike closed-loop apps, Ledgr is built on a foundation of data sovereignty. You decide exactly which systems see your financial data and how that data is shared, ensuring you are the owner of your financial story, not the product.
 
-Your expenses are stored in Google Sheets, encrypted before they leave your local machine — so Google never sees your actual transactions. You can add expenses manually, paste copied text from your bank's website, or upload a PDF bank statement. For the paste and upload options, the raw text is sent to an LLM for parsing. If you use **Ollama** (a local LLM), the data never leaves your machine at all. If you choose **OpenAI or Claude**, that text is sent to their systems — do your own due diligence on their data retention policies. Finally, you can optionally connect **Plaid** to fetch transactions directly from your bank account.
+Your expenses are stored in Google Sheets, encrypted before they leave your local machine — so Google never sees your actual transactions. You can add expenses manually, paste copied text from your bank's website, or upload a PDF bank statement. For the paste and upload options, the raw text is sent to an LLM for parsing. If you use **Ollama** (a local LLM), the data never leaves your machine at all. If you choose a cloud LLM provider, that text is sent to their systems — do your own due diligence on their data retention policies. Finally, you can optionally connect **Plaid** to fetch transactions directly from your bank account.
 
 ![Architecture diagram showing data flow between browser, local machine, Google Sheets, LLMs, and Plaid](docs/architecture.png)
 
@@ -47,7 +47,7 @@ Your expenses are stored in Google Sheets, encrypted before they leave your loca
 | Styling | Tailwind CSS v4 |
 | Storage | Google Sheets API (OAuth 2.0) |
 | Encryption | AES-256-GCM via browser Web Crypto API — key stored in `.env.local`, never sent anywhere |
-| AI parsing | Any LLM via the Express server — Anthropic Claude by default; configurable to OpenAI, Groq, Ollama, or any OpenAI-compatible provider |
+| AI parsing | Any LLM via the Express server — configurable to Anthropic, OpenAI, Groq, Ollama, or any OpenAI-compatible provider |
 | Bank sync | Plaid Link + Plaid Transactions API |
 | Server | Node.js + Express (port 3001) — handles LLM calls and Plaid |
 
@@ -57,7 +57,7 @@ Your expenses are stored in Google Sheets, encrypted before they leave your loca
 
 - **Node.js** 18+ and npm
 - A **Google account** (for Sheets storage and OAuth sign-in)
-- An **LLM API key** for parsing — Anthropic Claude is the default ([console.anthropic.com](https://console.anthropic.com)), but any OpenAI-compatible provider works (see [Choosing an LLM](#choosing-an-llm))
+- An **LLM API key** for parsing — any OpenAI-compatible provider works (Anthropic, OpenAI, Groq, etc.) or run Ollama locally for free (see [LLM for parsing](#3-llm-for-parsing-required))
 - A **Plaid account** *(optional — only needed for bank sync)* — [dashboard.plaid.com](https://dashboard.plaid.com)
 
 ---
@@ -101,7 +101,7 @@ npm install
 
 PDF and paste imports use an LLM to extract transactions. All LLM calls go through the local Express server — pick whichever provider you prefer and add the corresponding lines to `.env.local`:
 
-**Option A — Anthropic Claude** *(recommended — most accurate)*
+**Option A — Anthropic**
 ```env
 ANTHROPIC_API_KEY=sk-ant-api03-...
 # Model defaults to claude-haiku-4-5-20251001. To use a different model:
