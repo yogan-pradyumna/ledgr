@@ -11,9 +11,7 @@ Most of us fall into one of two frustrated camps:
 
 ### Enter Ledgr
 
-**Ledgr** was built to bridge this gap. It provides the "magic" of modern fintech—AI-powered parsing, automatic bank syncing, and beautiful visualizations—without ever taking ownership of your data. 
-
-**You control where your data goes.** Unlike closed-loop apps, Ledgr is built on a foundation of data sovereignty. Because it uses your own **Google Sheets** as a backend and your own **API keys** for AI, you have a fully customizable pipeline. You decide exactly which systems see your financial data and how that data is shared, ensuring you are the owner of your financial story, not the product.
+**Ledgr** was built to bridge this gap. It provides the "magic" of modern fintech—AI-powered parsing, automatic bank syncing, and beautiful visualizations—without ever taking ownership of your data.
 
 ## What it does
 
@@ -32,58 +30,12 @@ Most of us fall into one of two frustrated camps:
 - **Edit & Delete** — Maintain full control to fix or remove any expense directly from your dashboard.
 
 ### 3. How it Works
-- **Google Sheets Backend** — All data is stored in a spreadsheet within your own Google account for easy export.
-- **Private & Local** — No third-party servers or subscriptions; your financial data stays under your control.
-- **Bring Your Own AI** — Connect to your preferred LLM (Claude, OpenAI, or local via Ollama) for data parsing.
-- **Data Sovereignty** — Customize exactly how and to which systems you share your financial insights.
 
----
+**You control where your data goes.** Unlike closed-loop apps, Ledgr is built on a foundation of data sovereignty. You decide exactly which systems see your financial data and how that data is shared, ensuring you are the owner of your financial story, not the product.
 
-## Architecture
+Your expenses are stored in Google Sheets, encrypted before they leave your local machine — so Google never sees your actual transactions. You can add expenses manually, paste copied text from your bank's website, or upload a PDF bank statement. For the paste and upload options, the raw text is sent to an LLM for parsing. If you use **Ollama** (a local LLM), the data never leaves your machine at all. If you choose **OpenAI or Claude**, that text is sent to their systems — do your own due diligence on their data retention policies. Finally, you can optionally connect **Plaid** to fetch transactions directly from your bank account.
 
-```mermaid
-flowchart TB
-    subgraph browser["Browser"]
-        react["React Frontend"]
-    end
-
-    subgraph machine["Your Machine"]
-        server["Express Server (port 3001)"]
-        env[".env.local (all credentials)"]
-    end
-
-    subgraph google["Google Cloud"]
-        oauth["OAuth 2.0"]
-        sheets["Sheets API"]
-    end
-
-    subgraph llm["LLM Provider (your choice)"]
-        claude["Anthropic Claude"]
-        openai["OpenAI / Groq / etc."]
-        ollama["Ollama (local)"]
-    end
-
-    subgraph plaid["Plaid"]
-        plaidapi["Plaid API"]
-    end
-
-    react -- "sign-in & token refresh" --> oauth
-    react -- "read & write (expenses, budgets, rules)" --> sheets
-    react -- "parse request" --> server
-    server -- "parsed transactions" --> react
-    server -- "LLM API call" --> claude
-    server -- "LLM API call" --> openai
-    server -- "LLM API call" --> ollama
-    env -. "API keys loaded\nat startup" .-> server
-    react -- "Plaid Link / token exchange" --> server
-    server -- "fetch transactions" --> plaidapi
-```
-
-**Key points:**
-- The browser talks to Google directly (OAuth sign-in and Sheets read/write) — no middleman for your expense data
-- When `VITE_ENCRYPTION_KEY` is set, data is encrypted in the browser before writing to Sheets and decrypted after reading — Google only ever stores ciphertext
-- All LLM calls and Plaid calls are proxied through the local Express server, so API keys never touch the browser
-- `.env.local` is the single place for all credentials; it is gitignored
+![Architecture diagram showing data flow between browser, local machine, Google Sheets, LLMs, and Plaid](docs/architecture.png)
 
 ---
 
@@ -351,18 +303,6 @@ You can add your own sheets, formulas, or charts alongside these — the app onl
 - LLM API keys never leave your machine — they are read from `.env.local` by the local server only
 - Plaid access tokens are stored in `server/plaid-accounts.json` on your local machine (gitignored)
 - **LLM providers do receive your bank statement text** (merchant names, dates, amounts) for every parse request — do your own due diligence on your chosen provider's data retention and privacy policy before use. Ollama is the only option where nothing leaves your machine.
-
----
-
-## Running your own copy
-
-This project is designed to be self-hosted per user. Each person needs their own:
-- Google Cloud project + OAuth credentials
-- Google Spreadsheet
-- LLM API key (Anthropic, OpenAI, Groq, or self-hosted via Ollama)
-- Plaid credentials (optional)
-
-There is no shared backend.
 
 ---
 
