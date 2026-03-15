@@ -312,3 +312,5 @@ You can add your own sheets, formulas, or charts alongside these — the app onl
 - `server/plaid-accounts.json` is gitignored — it contains Plaid access tokens
 - `VITE_ENCRYPTION_KEY` is your data's master key — back it up in a password manager. Losing it makes all existing sheet data permanently unrecoverable.
 - If you fork this repo, verify no credentials were accidentally committed: `git log -p`
+
+> **Disclaimer:** This software is provided as-is, without warranty of any kind. It is a personal tool, not a financial service. Use of Plaid, Google Sheets, and LLM providers through this app is subject to each provider's own Terms of Service — you are responsible for complying with them. Each user must supply their own API credentials.
