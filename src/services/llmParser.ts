@@ -43,15 +43,25 @@ Bank statement text:
 ${text}`;
 }
 
-function parseResponseText(raw: string): ParsedTransaction[] {
+type RawTransaction = { date: string; description: string; amount: number; category: string; isPayment?: boolean };
+
+export function parseResponseText(raw: string): ParsedTransaction[] {
   const json = raw.replace(/^```(?:json)?\n?/i, '').replace(/\n?```$/, '').trim();
-  const parsed = JSON.parse(json) as Array<{
-    date: string;
-    description: string;
-    amount: number;
-    category: string;
-    isPayment?: boolean;
-  }>;
+
+  let parsed: RawTransaction[];
+  try {
+    parsed = JSON.parse(json) as RawTransaction[];
+  } catch {
+    // LLM output was likely truncated — recover everything up to the last complete object
+    const lastBrace = json.lastIndexOf('}');
+    if (lastBrace === -1) throw new Error('LLM returned unparseable output. Try importing a shorter date range.');
+    try {
+      parsed = JSON.parse(json.slice(0, lastBrace + 1) + ']') as RawTransaction[];
+    } catch {
+      throw new Error('LLM returned unparseable output. Try importing a shorter date range.');
+    }
+  }
+
   return parsed.map((t) => ({
     date: t.date,
     description: t.description,

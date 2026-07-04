@@ -1,7 +1,8 @@
 /**
  * Normalize a merchant description to a stable key for rule matching.
- * Takes the first 25 chars, lowercased and trimmed, to handle varying
- * transaction suffixes (e.g. "AMZN MKTP US*AB123CD" → "amzn mktp us*ab123cd").
+ * Lowercase + trim + 25-char prefix so that transactions with varying
+ * trailing codes (e.g. "AMZN MKTP US*AB123CD" vs "AMZN MKTP US*XY456EF")
+ * both resolve to the same rule key.
  */
 export function normalizeMerchant(description: string): string {
   return description.toLowerCase().trim().slice(0, 25).trimEnd();

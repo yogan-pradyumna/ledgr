@@ -14,6 +14,7 @@ interface Props {
 export default function StatementUpload({ onImport, merchantRules, onMerchantLearned }: Props) {
   const [dragging, setDragging] = useState(false);
   const [parsing, setParsing] = useState(false);
+  const [parseProgress, setParseProgress] = useState<{ batch: number; total: number } | null>(null);
   const [importing, setImporting] = useState(false);
   const [transactions, setTransactions] = useState<ParsedTransaction[]>([]);
   const [error, setError] = useState('');
@@ -27,8 +28,11 @@ export default function StatementUpload({ onImport, merchantRules, onMerchantLea
     setError('');
     setSuccess('');
     setParsing(true);
+    setParseProgress(null);
     try {
-      const parsed = await parsePDFStatement(file);
+      const parsed = await parsePDFStatement(file, (batch, total) => {
+        setParseProgress({ batch, total });
+      });
       if (parsed.length === 0) {
         setError('No transactions found in this PDF. The parser works best with text-based PDFs from banks.');
       } else {
@@ -38,6 +42,7 @@ export default function StatementUpload({ onImport, merchantRules, onMerchantLea
       setError(err instanceof Error ? err.message : 'Failed to parse PDF.');
     } finally {
       setParsing(false);
+      setParseProgress(null);
     }
   };
 
@@ -126,7 +131,11 @@ export default function StatementUpload({ onImport, merchantRules, onMerchantLea
         <div className="flex flex-col items-center gap-2">
           <PdfIcon />
           {parsing ? (
-            <p className="text-sm text-blue-600 font-medium">Parsing PDF…</p>
+            <p className="text-sm text-blue-600 font-medium">
+              {parseProgress
+                ? `Parsing batch ${parseProgress.batch} of ${parseProgress.total}…`
+                : 'Reading PDF…'}
+            </p>
           ) : (
             <>
               <p className="text-sm font-medium text-gray-700">

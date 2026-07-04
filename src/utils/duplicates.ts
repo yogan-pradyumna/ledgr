@@ -16,7 +16,7 @@ export function findDuplicate(
     (e) =>
       e.date === candidate.date &&
       e.description.toLowerCase().trim() === descNorm &&
-      e.amount === candidate.amount
+      Math.round(e.amount * 100) === Math.round(candidate.amount * 100)
   );
 }
 

@@ -20,6 +20,9 @@ import {
   saveBudgets,
 } from './services/googleSheets';
 import { normalizeMerchant } from './utils/merchantMemory';
+import { DEMO_EXPENSES, DEMO_BUDGETS } from './utils/demoData';
+
+const IS_DEMO = new URLSearchParams(window.location.search).get('demo') === 'true';
 
 const CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID as string;
 const SPREADSHEET_ID = import.meta.env.VITE_SPREADSHEET_ID as string;
@@ -36,11 +39,19 @@ export default function App() {
   const [merchantRules, setMerchantRules] = useState<Record<string, string>>({});
   const [budgets, setBudgets] = useState<Record<string, number>>({});
 
-  const isSignedIn = Boolean(token);
+  const isSignedIn = IS_DEMO || Boolean(token);
+
+  // Load demo data when in demo mode
+  useEffect(() => {
+    if (!IS_DEMO) return;
+    setExpenses(DEMO_EXPENSES);
+    setBudgets(DEMO_BUDGETS);
+    setSheetReady(true);
+  }, []);
 
   // Initialize sheet and load all data after sign-in
   useEffect(() => {
-    if (!token) return;
+    if (!token || IS_DEMO) return;
     (async () => {
       setLoadingExpenses(true);
       setInitError('');
@@ -99,7 +110,13 @@ export default function App() {
   const handleMerchantLearned = useCallback(async (description: string, category: string) => {
     const merchant = normalizeMerchant(description);
     setMerchantRules((prev) => ({ ...prev, [merchant]: category }));
-    await saveMerchantRule(token, SPREADSHEET_ID, merchant, category);
+    if (!IS_DEMO) {
+      try {
+        await saveMerchantRule(token, SPREADSHEET_ID, merchant, category);
+      } catch {
+        // Non-critical — local rule is already applied, Sheets persistence failed silently
+      }
+    }
   }, [token]);
 
   const handleSaveBudgets = async (updated: Record<string, number>) => {
