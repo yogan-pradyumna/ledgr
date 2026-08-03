@@ -212,6 +212,7 @@ export default function App() {
               )}
               {tab === 'upload' && sheetReady && (
                 <StatementUpload
+                  expenses={expenses}
                   onImport={handleImport}
                   merchantRules={merchantRules}
                   onMerchantLearned={handleMerchantLearned}

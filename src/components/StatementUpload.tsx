@@ -3,24 +3,30 @@ import type { Expense, ParsedTransaction } from '../types';
 import { CATEGORIES } from '../types';
 import { parsePDFStatement } from '../services/pdfParser';
 import { applyMerchantRules } from '../utils/merchantMemory';
+import { findDuplicateIndices, IMPORT_DUPLICATE_DATE_WINDOW_DAYS } from '../utils/duplicates';
 import { CURRENCY } from '../utils/currency';
 
 interface Props {
+  expenses: Expense[];
   onImport: (expenses: Expense[]) => Promise<void>;
   merchantRules: Record<string, string>;
   onMerchantLearned: (description: string, category: string) => void;
 }
 
-export default function StatementUpload({ onImport, merchantRules, onMerchantLearned }: Props) {
+interface ReviewRow extends ParsedTransaction {
+  isDuplicate: boolean;
+}
+
+export default function StatementUpload({ expenses, onImport, merchantRules, onMerchantLearned }: Props) {
   const [dragging, setDragging] = useState(false);
   const [parsing, setParsing] = useState(false);
   const [parseProgress, setParseProgress] = useState<{ batch: number; total: number } | null>(null);
   const [importing, setImporting] = useState(false);
-  const [transactions, setTransactions] = useState<ParsedTransaction[]>([]);
+  const [transactions, setTransactions] = useState<ReviewRow[]>([]);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
 
-  const processFile = async (file: File) => {
+  const processFile = useCallback(async (file: File) => {
     if (!file.name.toLowerCase().endsWith('.pdf')) {
       setError('Please upload a PDF file.');
       return;
@@ -36,7 +42,13 @@ export default function StatementUpload({ onImport, merchantRules, onMerchantLea
       if (parsed.length === 0) {
         setError('No transactions found in this PDF. The parser works best with text-based PDFs from banks.');
       } else {
-        setTransactions(applyMerchantRules(parsed, merchantRules));
+        const withRules = applyMerchantRules(parsed, merchantRules);
+        const duplicateIndices = findDuplicateIndices(expenses, withRules);
+        setTransactions(withRules.map((transaction, index) => ({
+          ...transaction,
+          selected: !duplicateIndices.has(index) && !transaction.isPayment,
+          isDuplicate: duplicateIndices.has(index),
+        })));
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to parse PDF.');
@@ -44,14 +56,14 @@ export default function StatementUpload({ onImport, merchantRules, onMerchantLea
       setParsing(false);
       setParseProgress(null);
     }
-  };
+  }, [expenses, merchantRules]);
 
   const onDrop = useCallback((e: React.DragEvent) => {
     e.preventDefault();
     setDragging(false);
     const file = e.dataTransfer.files[0];
     if (file) processFile(file);
-  }, []);
+  }, [processFile]);
 
   const onFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -74,7 +86,10 @@ export default function StatementUpload({ onImport, merchantRules, onMerchantLea
 
   const toggleAll = (selected: boolean) =>
     setTransactions((prev) =>
-      prev.map((t) => ({ ...t, selected: selected && t.isPayment ? false : selected }))
+      prev.map((t) => ({
+        ...t,
+        selected: selected && (t.isDuplicate || t.isPayment) ? false : selected,
+      }))
     );
 
   const handleImport = async () => {
@@ -107,6 +122,7 @@ export default function StatementUpload({ onImport, merchantRules, onMerchantLea
   };
 
   const selectedCount = transactions.filter((t) => t.selected).length;
+  const duplicateCount = transactions.filter((t) => t.isDuplicate).length;
   const paymentCount = transactions.filter((t) => t.isPayment).length;
 
   return (
@@ -163,6 +179,12 @@ export default function StatementUpload({ onImport, merchantRules, onMerchantLea
                   {paymentCount} payment/transfer{paymentCount !== 1 ? 's' : ''} auto-deselected
                 </p>
               )}
+              {duplicateCount > 0 && (
+                <p className="text-xs text-amber-600">
+                  {duplicateCount} possible duplicate{duplicateCount !== 1 ? 's' : ''} auto-deselected
+                  {' '}— same description and amount within {IMPORT_DUPLICATE_DATE_WINDOW_DAYS} days
+                </p>
+              )}
             </div>
             <div className="flex gap-2 text-xs">
               <button onClick={() => toggleAll(true)} className="text-blue-600 hover:underline">All</button>
@@ -184,7 +206,18 @@ export default function StatementUpload({ onImport, merchantRules, onMerchantLea
               </thead>
               <tbody className="divide-y divide-gray-100">
                 {transactions.map((t, idx) => (
-                  <tr key={idx} className={t.isPayment ? 'bg-purple-50' : t.selected ? 'bg-white' : 'bg-gray-50 opacity-50'}>
+                  <tr
+                    key={idx}
+                    className={
+                      t.isPayment
+                        ? 'bg-purple-50'
+                        : t.isDuplicate
+                        ? 'bg-amber-50'
+                        : t.selected
+                        ? 'bg-white'
+                        : 'bg-gray-50 opacity-50'
+                    }
+                  >
                     <td className="px-3 py-2">
                       <input
                         type="checkbox"
@@ -198,6 +231,9 @@ export default function StatementUpload({ onImport, merchantRules, onMerchantLea
                       {t.description}
                       {t.isPayment && (
                         <span className="ml-1.5 text-xs font-medium text-purple-600">payment?</span>
+                      )}
+                      {t.isDuplicate && (
+                        <span className="ml-1.5 text-xs font-medium text-amber-600">duplicate?</span>
                       )}
                     </td>
                     <td className="px-3 py-2 text-right font-mono text-gray-900">

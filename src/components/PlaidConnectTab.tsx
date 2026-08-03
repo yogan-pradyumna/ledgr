@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import type { Expense, PlaidTransactionRow } from '../types';
 import { CATEGORIES } from '../types';
 import { mapPlaidCategory } from '../utils/plaidCategories';
-import { findDuplicateIndices } from '../utils/duplicates';
+import { findDuplicateIndices, IMPORT_DUPLICATE_DATE_WINDOW_DAYS } from '../utils/duplicates';
 import { applyMerchantRules } from '../utils/merchantMemory';
 import { CURRENCY } from '../utils/currency';
 
@@ -353,6 +353,7 @@ export default function PlaidConnectTab({ expenses, onImport, merchantRules, onM
               {duplicateCount > 0 && (
                 <p className="text-xs text-amber-600">
                   {duplicateCount} possible duplicate{duplicateCount !== 1 ? 's' : ''} auto-deselected
+                  {' '}— same description and amount within {IMPORT_DUPLICATE_DATE_WINDOW_DAYS} days
                 </p>
               )}
             </div>

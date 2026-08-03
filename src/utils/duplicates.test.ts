@@ -1,5 +1,9 @@
 import { describe, it, expect } from 'vitest';
-import { findDuplicate, findDuplicateIndices } from './duplicates';
+import {
+  findDuplicate,
+  findDuplicateIndices,
+  findPossibleImportDuplicate,
+} from './duplicates';
 import type { Expense } from '../types';
 
 const makeExpense = (overrides: Partial<Expense> = {}): Expense => ({
@@ -100,5 +104,49 @@ describe('findDuplicateIndices', () => {
     ];
     const result = findDuplicateIndices(expenses, candidates);
     expect(result).toEqual(new Set([0, 1]));
+  });
+
+  it('flags the same description and amount when the posting date shifts', () => {
+    const expenses = [makeExpense({ date: '2024-03-15' })];
+    const candidates = [
+      { date: '2024-03-18', description: 'Whole Foods', amount: 87.43 },
+    ];
+
+    expect(findDuplicateIndices(expenses, candidates)).toEqual(new Set([0]));
+  });
+
+  it('does not flag matching transactions outside the import date window', () => {
+    const expenses = [makeExpense({ date: '2024-03-15' })];
+    const candidates = [
+      { date: '2024-03-20', description: 'Whole Foods', amount: 87.43 },
+    ];
+
+    expect(findDuplicateIndices(expenses, candidates).size).toBe(0);
+  });
+
+  it('flags duplicate rows within the same import', () => {
+    const candidates = [
+      { date: '2024-03-15', description: 'Whole Foods', amount: 87.43 },
+      { date: '2024-03-17', description: 'whole foods', amount: 87.43 },
+    ];
+
+    expect(findDuplicateIndices([], candidates)).toEqual(new Set([1]));
+  });
+});
+
+describe('findPossibleImportDuplicate', () => {
+  it('supports a custom date window', () => {
+    const existing = makeExpense({ date: '2024-03-15' });
+    const candidate = { date: '2024-03-17', description: 'Whole Foods', amount: 87.43 };
+
+    expect(findPossibleImportDuplicate([existing], candidate, 1)).toBeUndefined();
+    expect(findPossibleImportDuplicate([existing], candidate, 2)).toBe(existing);
+  });
+
+  it('does not treat malformed dates as nearby', () => {
+    const existing = makeExpense({ date: 'not-a-date' });
+    const candidate = { date: 'also-not-a-date', description: 'Whole Foods', amount: 87.43 };
+
+    expect(findPossibleImportDuplicate([existing], candidate)).toBeUndefined();
   });
 });
