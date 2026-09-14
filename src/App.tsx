@@ -194,57 +194,59 @@ export default function App() {
             </div>
 
             {/* Tab content */}
-            <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-              {tab === 'list' && (
-                <ExpenseList
-                  expenses={expenses}
-                  loading={loadingExpenses}
-                  onUpdate={handleUpdateExpense}
-                  onDelete={handleDeleteExpense}
-                  onMerchantLearned={handleMerchantLearned}
-                />
-              )}
-              {tab === 'trends' && (
-                <TrendsTab expenses={expenses} />
-              )}
-              {tab === 'add' && sheetReady && (
-                <ExpenseForm expenses={expenses} onSubmit={handleAddExpense} />
-              )}
-              {tab === 'upload' && sheetReady && (
-                <StatementUpload
-                  expenses={expenses}
-                  onImport={handleImport}
-                  merchantRules={merchantRules}
-                  onMerchantLearned={handleMerchantLearned}
-                />
-              )}
-              {tab === 'paste' && sheetReady && (
-                <PasteImportTab
-                  expenses={expenses}
-                  onImport={handleImport}
-                  merchantRules={merchantRules}
-                  onMerchantLearned={handleMerchantLearned}
-                />
-              )}
-              {tab === 'budget' && sheetReady && (
-                <BudgetTab
-                  expenses={expenses}
-                  budgets={budgets}
-                  onSave={handleSaveBudgets}
-                />
-              )}
-              {tab === 'bank' && sheetReady && (
-                <PlaidConnectTab
-                  expenses={expenses}
-                  onImport={handleImport}
-                  merchantRules={merchantRules}
-                  onMerchantLearned={handleMerchantLearned}
-                />
-              )}
-              {(tab === 'add' || tab === 'upload' || tab === 'paste' || tab === 'budget' || tab === 'bank' || tab === 'trends') && !sheetReady && !initError && (
-                <p className="text-sm text-gray-400 text-center py-8">Connecting to Google Sheets…</p>
-              )}
-            </div>
+            {tab === 'list' ? (
+              <ExpenseList
+                expenses={expenses}
+                loading={loadingExpenses}
+                onUpdate={handleUpdateExpense}
+                onDelete={handleDeleteExpense}
+                onMerchantLearned={handleMerchantLearned}
+                budgets={budgets}
+              />
+            ) : (
+              <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+                {tab === 'trends' && (
+                  <TrendsTab expenses={expenses} />
+                )}
+                {tab === 'add' && sheetReady && (
+                  <ExpenseForm expenses={expenses} onSubmit={handleAddExpense} />
+                )}
+                {tab === 'upload' && sheetReady && (
+                  <StatementUpload
+                    expenses={expenses}
+                    onImport={handleImport}
+                    merchantRules={merchantRules}
+                    onMerchantLearned={handleMerchantLearned}
+                  />
+                )}
+                {tab === 'paste' && sheetReady && (
+                  <PasteImportTab
+                    expenses={expenses}
+                    onImport={handleImport}
+                    merchantRules={merchantRules}
+                    onMerchantLearned={handleMerchantLearned}
+                  />
+                )}
+                {tab === 'budget' && sheetReady && (
+                  <BudgetTab
+                    expenses={expenses}
+                    budgets={budgets}
+                    onSave={handleSaveBudgets}
+                  />
+                )}
+                {tab === 'bank' && sheetReady && (
+                  <PlaidConnectTab
+                    expenses={expenses}
+                    onImport={handleImport}
+                    merchantRules={merchantRules}
+                    onMerchantLearned={handleMerchantLearned}
+                  />
+                )}
+                {(tab === 'add' || tab === 'upload' || tab === 'paste' || tab === 'budget' || tab === 'bank' || tab === 'trends') && !sheetReady && !initError && (
+                  <p className="text-sm text-gray-400 text-center py-8">Connecting to Google Sheets…</p>
+                )}
+              </div>
+            )}
           </>
         )}
       </main>

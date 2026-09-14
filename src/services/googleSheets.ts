@@ -325,11 +325,13 @@ export async function saveBudgets(
     ])
   );
 
-  // Clear existing data rows
+  // Clear existing data rows. Note: values.update with an empty `values`
+  // array is a no-op in the Sheets API — it leaves prior rows untouched.
+  // values.clear is the only way to actually remove them.
   await sheetsRequest(
     token,
-    `/${spreadsheetId}/values/${BUDGET_SHEET}!A2:B?valueInputOption=RAW`,
-    { method: 'PUT', body: JSON.stringify({ values: [] }) }
+    `/${spreadsheetId}/values/${BUDGET_SHEET}!A2:B:clear`,
+    { method: 'POST', body: JSON.stringify({}) }
   );
 
   if (values.length === 0) return;

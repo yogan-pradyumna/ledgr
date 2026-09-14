@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react';
 import type { Expense } from '../types';
 import { CATEGORIES } from '../types';
 import { CURRENCY } from '../utils/currency';
+import ExpenseSidebar from './ExpenseSidebar';
 
 interface Props {
   expenses: Expense[];
@@ -9,12 +10,13 @@ interface Props {
   onUpdate: (expense: Expense) => Promise<void>;
   onDelete: (id: string) => Promise<void>;
   onMerchantLearned: (description: string, category: string) => void;
+  budgets: Record<string, number>;
 }
 
 const ALL = 'All';
 const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 
-export default function ExpenseList({ expenses, loading, onUpdate, onDelete, onMerchantLearned }: Props) {
+export default function ExpenseList({ expenses, loading, onUpdate, onDelete, onMerchantLearned, budgets }: Props) {
   const [filterCategory, setFilterCategory] = useState(ALL);
   const [filterSource, setFilterSource] = useState(ALL);
   const [filterYear, setFilterYear] = useState(ALL);
@@ -100,6 +102,22 @@ export default function ExpenseList({ expenses, loading, onUpdate, onDelete, onM
 
   const maxCategory = Math.max(...categoryTotals.map(([, v]) => v), 1);
 
+  const budgetAlerts = useMemo(() => {
+    const currentSpend: Record<string, number> = {};
+    expenses.forEach((e) => {
+      if (e.date.startsWith(currentYearMonth)) {
+        currentSpend[e.category] = (currentSpend[e.category] ?? 0) + e.amount;
+      }
+    });
+    return Object.entries(budgets)
+      .filter(([, budget]) => budget > 0)
+      .map(([category, budget]) => {
+        const spent = currentSpend[category] ?? 0;
+        return { category, budget, spent, pct: (spent / budget) * 100 };
+      })
+      .sort((a, b) => b.pct - a.pct);
+  }, [expenses, budgets, currentYearMonth]);
+
   const startEdit = (expense: Expense) => {
     setEditingId(expense.id);
     setEditDraft({ ...expense });
@@ -145,7 +163,7 @@ export default function ExpenseList({ expenses, loading, onUpdate, onDelete, onM
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center py-12 text-gray-400 text-sm">
+      <div className="flex items-center justify-center py-12 text-gray-400 text-sm bg-white rounded-xl shadow-sm border border-gray-200">
         Loading expenses…
       </div>
     );
@@ -154,7 +172,7 @@ export default function ExpenseList({ expenses, loading, onUpdate, onDelete, onM
   return (
     <div className="flex gap-6 items-start">
       {/* Main content */}
-      <div className="flex-1 min-w-0 space-y-4">
+      <div className="flex-1 min-w-0 space-y-4 bg-white rounded-xl shadow-sm border border-gray-200 p-6">
         {/* Search */}
         <div className="flex gap-2">
           <input
@@ -428,82 +446,19 @@ export default function ExpenseList({ expenses, loading, onUpdate, onDelete, onM
         )}
       </div>
 
-      {/* Sidebar widgets */}
-      <div className="w-48 shrink-0 space-y-4 sticky top-4">
-        {/* Category breakdown */}
-        <div className="bg-white border border-gray-200 rounded-xl p-4 shadow-sm">
-          <p className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-0.5">By Category</p>
-          <p className="text-xs text-gray-400 mb-3">
-            {hasActiveFilter ? 'filtered view' : currentMonthName}
-          </p>
-          {categoryTotals.length === 0 ? (
-            <p className="text-xs text-gray-400">No data</p>
-          ) : (
-            <div className="space-y-1.5">
-              {categoryTotals.map(([cat, total]) => (
-                <div key={cat} className="flex items-center gap-2">
-                  <span className="text-xs text-gray-500 w-16 shrink-0 truncate" title={cat}>{cat}</span>
-                  <div className="flex-1 bg-gray-100 rounded-full h-1.5 overflow-hidden">
-                    <div
-                      className="bg-emerald-500 h-1.5 rounded-full transition-all"
-                      style={{ width: `${(total / maxCategory) * 100}%` }}
-                    />
-                  </div>
-                  <span className="text-xs font-medium text-gray-700 w-12 text-right shrink-0">
-                    {CURRENCY}{total.toLocaleString(undefined, { maximumFractionDigits: 0 })}
-                  </span>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-
-        {/* Monthly breakdown */}
-        <div className="bg-white border border-gray-200 rounded-xl p-4 shadow-sm">
-          <p className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-3">Monthly ({displayYear})</p>
-          <div className="space-y-1.5">
-            {MONTHS.map((month, i) => (
-              <div key={month} className="flex items-center gap-2">
-                <span className="text-xs text-gray-500 w-7 shrink-0">{month}</span>
-                <div className="flex-1 bg-gray-100 rounded-full h-1.5 overflow-hidden">
-                  <div
-                    className="bg-blue-500 h-1.5 rounded-full transition-all"
-                    style={{ width: monthlyTotals[i] > 0 ? `${(monthlyTotals[i] / maxMonthly) * 100}%` : '0%' }}
-                  />
-                </div>
-                <span className="text-xs font-medium text-gray-700 w-16 text-right shrink-0">
-                  {monthlyTotals[i] > 0 ? `${CURRENCY}${monthlyTotals[i].toLocaleString(undefined, { maximumFractionDigits: 0 })}` : '—'}
-                </span>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* Yearly breakdown */}
-        <div className="bg-white border border-gray-200 rounded-xl p-4 shadow-sm">
-          <p className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-3">By Year</p>
-          {yearlyTotals.length === 0 ? (
-            <p className="text-xs text-gray-400">No data</p>
-          ) : (
-            <div className="space-y-1.5">
-              {yearlyTotals.map(([year, total]) => (
-                <div key={year} className="flex items-center gap-2">
-                  <span className="text-xs text-gray-500 w-9 shrink-0">{year}</span>
-                  <div className="flex-1 bg-gray-100 rounded-full h-1.5 overflow-hidden">
-                    <div
-                      className="bg-violet-500 h-1.5 rounded-full transition-all"
-                      style={{ width: `${(total / maxYearly) * 100}%` }}
-                    />
-                  </div>
-                  <span className="text-xs font-medium text-gray-700 w-16 text-right shrink-0">
-                    {CURRENCY}{total.toLocaleString(undefined, { maximumFractionDigits: 0 })}
-                  </span>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-      </div>
+      <ExpenseSidebar
+        categoryTotals={categoryTotals}
+        maxCategory={maxCategory}
+        hasActiveFilter={hasActiveFilter}
+        currentMonthName={currentMonthName}
+        budgets={budgets}
+        budgetAlerts={budgetAlerts}
+        monthlyTotals={monthlyTotals}
+        maxMonthly={maxMonthly}
+        displayYear={displayYear}
+        yearlyTotals={yearlyTotals}
+        maxYearly={maxYearly}
+      />
     </div>
   );
 }
