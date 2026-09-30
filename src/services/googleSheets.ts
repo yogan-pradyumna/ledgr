@@ -105,7 +105,7 @@ export async function fetchExpenses(
 ): Promise<Expense[]> {
   const res = await sheetsRequest(
     token,
-    `/${spreadsheetId}/values/${SHEET_NAME}!A2:G`
+    `/${spreadsheetId}/values/${SHEET_NAME}!A2:G100000`
   );
   const data = await res.json();
   const rows: string[][] = data.values ?? [];
@@ -158,7 +158,7 @@ export async function updateExpense(
   spreadsheetId: string,
   expense: Expense
 ): Promise<void> {
-  const idsRes = await sheetsRequest(token, `/${spreadsheetId}/values/${SHEET_NAME}!A2:A`);
+  const idsRes = await sheetsRequest(token, `/${spreadsheetId}/values/${SHEET_NAME}!A2:A100000`);
   const idsData = await idsRes.json();
   const ids: string[][] = idsData.values ?? [];
   const rowIndex = ids.findIndex((r) => r[0] === expense.id);
@@ -203,7 +203,7 @@ export async function deleteExpense(
   const sheetId = sheetMeta.properties.sheetId;
 
   // Find the row — ID column is unencrypted, no decryption needed
-  const idsRes = await sheetsRequest(token, `/${spreadsheetId}/values/${SHEET_NAME}!A2:A`);
+  const idsRes = await sheetsRequest(token, `/${spreadsheetId}/values/${SHEET_NAME}!A2:A100000`);
   const idsData = await idsRes.json();
   const ids: string[][] = idsData.values ?? [];
   const rowIndex = ids.findIndex((r) => r[0] === id);
@@ -232,7 +232,7 @@ export async function fetchMerchantRules(
   token: string,
   spreadsheetId: string
 ): Promise<Record<string, string>> {
-  const res = await sheetsRequest(token, `/${spreadsheetId}/values/${MERCHANT_SHEET}!A2:B`);
+  const res = await sheetsRequest(token, `/${spreadsheetId}/values/${MERCHANT_SHEET}!A2:B100000`);
   const data = await res.json();
   const rows: string[][] = data.values ?? [];
   const rules: Record<string, string> = {};
@@ -260,7 +260,7 @@ export async function saveMerchantRule(
   category: string
 ): Promise<void> {
   // Fetch all rows and decrypt merchant names to find if this merchant already has a row
-  const res = await sheetsRequest(token, `/${spreadsheetId}/values/${MERCHANT_SHEET}!A2:B`);
+  const res = await sheetsRequest(token, `/${spreadsheetId}/values/${MERCHANT_SHEET}!A2:B100000`);
   const data = await res.json();
   const rows: string[][] = data.values ?? [];
   const decryptedMerchants = await Promise.all(rows.map((r) => decrypt(r[0] ?? '')));
@@ -292,7 +292,7 @@ export async function fetchBudgets(
   token: string,
   spreadsheetId: string
 ): Promise<Record<string, number>> {
-  const res = await sheetsRequest(token, `/${spreadsheetId}/values/${BUDGET_SHEET}!A2:B`);
+  const res = await sheetsRequest(token, `/${spreadsheetId}/values/${BUDGET_SHEET}!A2:B100000`);
   const data = await res.json();
   const rows: string[][] = data.values ?? [];
   const budgets: Record<string, number> = {};
