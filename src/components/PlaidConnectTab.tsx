@@ -27,6 +27,13 @@ interface PlaidMetadata {
   accounts: Array<{ id: string; name: string; mask: string; type: string; subtype: string }>;
 }
 
+interface PlaidLinkError {
+  error_type: string;
+  error_code: string;
+  error_message: string;
+  display_message: string | null;
+}
+
 interface PlaidHandler {
   open: () => void;
 }
@@ -36,7 +43,7 @@ interface PlaidWindow extends Window {
     create: (config: {
       token: string;
       onSuccess: (publicToken: string, metadata: PlaidMetadata) => void;
-      onExit: () => void;
+      onExit: (err: PlaidLinkError | null, metadata: { institution: { name: string } | null; link_session_id: string }) => void;
       onLoad: () => void;
     }) => PlaidHandler;
   };
@@ -67,6 +74,8 @@ export default function PlaidConnectTab({ expenses, onImport, merchantRules, onM
   const [importing, setImporting] = useState(false);
   const [removingId, setRemovingId] = useState<string | null>(null);
   const [linkLoading, setLinkLoading] = useState(false);
+  // itemId -> error message for banks that need the user to log in again
+  const [reauthItems, setReauthItems] = useState<Record<string, string>>({});
   const [days, setDays] = useState(30);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
@@ -109,11 +118,16 @@ export default function PlaidConnectTab({ expenses, onImport, merchantRules, onM
     }
   }, [loadAccounts]);
 
-  const handleConnectBank = useCallback(async () => {
+  // Pass itemId to open Link in update mode and re-authenticate an existing bank
+  const handleConnectBank = useCallback(async (itemId?: string) => {
     setLinkLoading(true);
     setError('');
     try {
-      const res = await fetch('/api/plaid/link-token', { method: 'POST' });
+      const res = await fetch('/api/plaid/link-token', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(itemId ? { itemId } : {}),
+      });
       const data = await res.json() as { link_token?: string; error?: string };
       if (!data.link_token) throw new Error(data.error ?? 'Failed to get link token');
 
@@ -123,9 +137,23 @@ export default function PlaidConnectTab({ expenses, onImport, merchantRules, onM
         token: data.link_token,
         onSuccess: async (public_token: string, metadata: PlaidMetadata) => {
           setLinkLoading(false);
+          if (itemId) {
+            // Update mode keeps the existing access token; no exchange needed
+            setReauthItems((prev) => Object.fromEntries(Object.entries(prev).filter(([id]) => id !== itemId)));
+            setSuccess(`${metadata.institution.name} reconnected. Fetch transactions again.`);
+            setTimeout(() => setSuccess(''), 4000);
+            return;
+          }
           await exchangeToken(public_token, metadata);
         },
-        onExit: () => setLinkLoading(false),
+        onExit: (err, metadata) => {
+          setLinkLoading(false);
+          if (err) {
+            console.error('Plaid Link exit error', err, metadata);
+            const bank = metadata.institution?.name ? `${metadata.institution.name}: ` : '';
+            setError(`${bank}[${err.error_code}] ${err.display_message ?? err.error_message}`);
+          }
+        },
         onLoad: () => setLinkLoading(false),
       });
       handler.open();
@@ -152,13 +180,27 @@ export default function PlaidConnectTab({ expenses, onImport, merchantRules, onM
           institutionName: string;
           isPayment: boolean;
         }>;
+        itemErrors?: Array<{ itemId: string; institutionName: string; code?: string; message: string }>;
         error?: string;
       };
 
       if (data.error) throw new Error(data.error);
 
+      const itemErrors = data.itemErrors ?? [];
+      setReauthItems(
+        Object.fromEntries(
+          itemErrors
+            .filter((e) => e.code === 'ITEM_LOGIN_REQUIRED')
+            .map((e) => [e.itemId, e.message])
+        )
+      );
+      const otherErrors = itemErrors.filter((e) => e.code !== 'ITEM_LOGIN_REQUIRED');
+      if (otherErrors.length > 0) {
+        setError(otherErrors.map((e) => `${e.institutionName}: ${e.message}`).join(' '));
+      }
+
       if (data.transactions.length === 0) {
-        setError(`No transactions found in the last ${days} days.`);
+        if (itemErrors.length === 0) setError(`No transactions found in the last ${days} days.`);
         return;
       }
 
@@ -283,7 +325,22 @@ export default function PlaidConnectTab({ expenses, onImport, merchantRules, onM
                 <p className="text-xs text-gray-500">
                   {item.accounts.map((a) => `${a.name} (••••${a.mask})`).join(', ')}
                 </p>
+                {reauthItems[item.itemId] && (
+                  <p className="text-xs text-amber-600 mt-0.5">
+                    Login required: this bank's credentials or MFA changed. Reconnect to resume syncing.
+                  </p>
+                )}
               </div>
+              <div className="flex items-center gap-3">
+              {reauthItems[item.itemId] && (
+                <button
+                  onClick={() => handleConnectBank(item.itemId)}
+                  disabled={linkLoading}
+                  className="text-xs font-medium text-blue-600 hover:text-blue-800 disabled:opacity-50 transition-colors"
+                >
+                  Reconnect
+                </button>
+              )}
               <button
                 onClick={() => handleRemoveAccount(item.itemId)}
                 disabled={removingId === item.itemId}
@@ -291,6 +348,7 @@ export default function PlaidConnectTab({ expenses, onImport, merchantRules, onM
               >
                 {removingId === item.itemId ? 'Removing…' : 'Remove'}
               </button>
+              </div>
             </div>
           ))}
         </div>
@@ -298,7 +356,7 @@ export default function PlaidConnectTab({ expenses, onImport, merchantRules, onM
 
       {/* Connect button */}
       <button
-        onClick={handleConnectBank}
+        onClick={() => handleConnectBank()}
         disabled={linkLoading}
         className="flex items-center justify-center gap-2 w-full px-4 py-3 border-2 border-dashed border-gray-300 rounded-xl text-sm font-medium text-gray-600 hover:border-blue-400 hover:text-blue-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
       >

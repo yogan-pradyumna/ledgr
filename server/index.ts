@@ -93,12 +93,25 @@ app.use(cors({ origin: 'http://localhost:5173' }));
 app.use(express.json());
 
 // POST /api/plaid/link-token
-app.post('/api/plaid/link-token', async (_req, res) => {
+// Body (optional): { itemId } — creates an update-mode token to re-authenticate an existing item
+app.post('/api/plaid/link-token', async (req, res) => {
   try {
+    const { itemId } = (req.body ?? {}) as { itemId?: string };
+    let accessToken: string | undefined;
+    if (itemId) {
+      const item = (await readAccounts()).items.find((i) => i.itemId === itemId);
+      if (!item) {
+        res.status(404).json({ error: 'Unknown item' });
+        return;
+      }
+      accessToken = item.accessToken;
+    }
+
     const response = await plaid.linkTokenCreate({
       user: { client_user_id: 'local-user' },
       client_name: 'Ledgr',
-      products: [Products.Transactions],
+      // Update mode takes the access token and must omit products
+      ...(accessToken ? { access_token: accessToken } : { products: [Products.Transactions] }),
       country_codes: [CountryCode.Us],
       language: 'en',
     });
@@ -173,23 +186,36 @@ app.get('/api/plaid/transactions', async (req, res) => {
       return;
     }
 
+    // Fetch per item so one broken connection doesn't block the others
+    const itemErrors: Array<{ itemId: string; institutionName: string; code?: string; message: string }> = [];
     const allTransactions = await Promise.all(
       data.items.map(async (item) => {
-        const txRes = await plaid.transactionsGet({
-          access_token: item.accessToken,
-          start_date: startDate,
-          end_date: endDate,
-        });
-        return txRes.data.transactions.map((tx) => ({
-          plaidTransactionId: tx.transaction_id,
-          date: tx.date,
-          description: tx.merchant_name ?? tx.name,
-          amount: tx.amount, // Plaid: positive = debit
-          plaidCategory: tx.personal_finance_category?.primary ?? 'OTHER',
-          plaidCategoryDetailed: tx.personal_finance_category?.detailed,
-          accountId: tx.account_id,
-          institutionName: item.institutionName,
-        }));
+        try {
+          const txRes = await plaid.transactionsGet({
+            access_token: item.accessToken,
+            start_date: startDate,
+            end_date: endDate,
+          });
+          return txRes.data.transactions.map((tx) => ({
+            plaidTransactionId: tx.transaction_id,
+            date: tx.date,
+            description: tx.merchant_name ?? tx.name,
+            amount: tx.amount, // Plaid: positive = debit
+            plaidCategory: tx.personal_finance_category?.primary ?? 'OTHER',
+            plaidCategoryDetailed: tx.personal_finance_category?.detailed,
+            accountId: tx.account_id,
+            institutionName: item.institutionName,
+          }));
+        } catch (err) {
+          logPlaidError(`transactions:${item.institutionName}`, err);
+          itemErrors.push({
+            itemId: item.itemId,
+            institutionName: item.institutionName,
+            code: (err as PlaidErrorResponse)?.response?.data?.error_code,
+            message: errorMessage(err),
+          });
+          return [];
+        }
       })
     );
 
@@ -215,7 +241,7 @@ app.get('/api/plaid/transactions', async (req, res) => {
       }))
       .sort((a, b) => b.date.localeCompare(a.date));
 
-    res.json({ transactions });
+    res.json({ transactions, itemErrors });
   } catch (err) {
     logPlaidError('transactions', err);
     res.status(500).json({ error: errorMessage(err) });
