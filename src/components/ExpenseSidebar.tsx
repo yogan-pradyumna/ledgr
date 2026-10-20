@@ -67,6 +67,27 @@ export default function ExpenseSidebar({
         )}
       </div>
 
+      {/* Monthly breakdown */}
+      <div className="bg-white border border-gray-200 rounded-xl p-4 shadow-sm">
+        <p className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-3">Monthly ({displayYear})</p>
+        <div className="space-y-1.5">
+          {MONTHS.map((month, i) => (
+            <div key={month} className="flex items-center gap-2">
+              <span className="text-xs text-gray-500 w-7 shrink-0">{month}</span>
+              <div className="flex-1 bg-gray-100 rounded-full h-1.5 overflow-hidden">
+                <div
+                  className="bg-blue-500 h-1.5 rounded-full transition-all"
+                  style={{ width: monthlyTotals[i] > 0 ? `${(monthlyTotals[i] / maxMonthly) * 100}%` : '0%' }}
+                />
+              </div>
+              <span className="text-xs font-medium text-gray-700 w-16 text-right shrink-0">
+                {monthlyTotals[i] > 0 ? `${CURRENCY}${monthlyTotals[i].toLocaleString(undefined, { maximumFractionDigits: 0 })}` : '—'}
+              </span>
+            </div>
+          ))}
+        </div>
+      </div>
+
       {/* Budget watch */}
       {Object.keys(budgets).length > 0 && (
         <div className="bg-white border border-gray-200 rounded-xl p-4 shadow-sm">
@@ -95,27 +116,6 @@ export default function ExpenseSidebar({
           )}
         </div>
       )}
-
-      {/* Monthly breakdown */}
-      <div className="bg-white border border-gray-200 rounded-xl p-4 shadow-sm">
-        <p className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-3">Monthly ({displayYear})</p>
-        <div className="space-y-1.5">
-          {MONTHS.map((month, i) => (
-            <div key={month} className="flex items-center gap-2">
-              <span className="text-xs text-gray-500 w-7 shrink-0">{month}</span>
-              <div className="flex-1 bg-gray-100 rounded-full h-1.5 overflow-hidden">
-                <div
-                  className="bg-blue-500 h-1.5 rounded-full transition-all"
-                  style={{ width: monthlyTotals[i] > 0 ? `${(monthlyTotals[i] / maxMonthly) * 100}%` : '0%' }}
-                />
-              </div>
-              <span className="text-xs font-medium text-gray-700 w-16 text-right shrink-0">
-                {monthlyTotals[i] > 0 ? `${CURRENCY}${monthlyTotals[i].toLocaleString(undefined, { maximumFractionDigits: 0 })}` : '—'}
-              </span>
-            </div>
-          ))}
-        </div>
-      </div>
 
       {/* Yearly breakdown */}
       <div className="bg-white border border-gray-200 rounded-xl p-4 shadow-sm">
